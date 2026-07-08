@@ -1,0 +1,244 @@
+// FlowFix AI — Prisma schema
+//
+// Multi-tenant SaaS for plumbing, electrical, and HVAC businesses.
+// Every domain row is scoped to a BusinessProfile so multiple businesses
+// can coexist in one database with strict isolation.
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────
+
+enum JobStatus {
+  PENDING
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum JobPriority {
+  NORMAL
+  URGENT
+  EMERGENCY
+}
+
+enum WorkerRole {
+  OWNER
+  ADMIN
+  DISPATCHER
+  TECHNICIAN
+}
+
+enum MembershipRole {
+  OWNER
+  ADMIN
+  DISPATCHER
+  TECHNICIAN
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+// ─── Identity ─────────────────────────────────────────────────────────
+
+/// Identity row mirrored from Clerk. `id` is the Clerk user id
+/// (e.g. `user_2abc…`). Populated by the `user.created` webhook.
+model User {
+  id        String   @id
+  email     String?
+  firstName String?
+  lastName  String?
+  imageUrl  String?
+
+  memberships      Membership[]
+  ownedBusinesses  BusinessProfile[] @relation("BusinessOwner")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([email])
+}
+
+/// A single business account. All operational data (customers, jobs, calls…)
+/// is scoped under one of these. The ownerUserId identifies who created it.
+model BusinessProfile {
+  id          String  @id @default(cuid())
+  name        String
+  ownerUserId String
+
+  phone    String?
+  email    String?
+  address  String?
+  timezone String  @default("UTC")
+
+  owner User @relation("BusinessOwner", fields: [ownerUserId], references: [id])
+
+  memberships  Membership[]
+  customers    Customer[]
+  workers      Worker[]
+  jobs         Job[]
+  calls        Call[]
+  appointments Appointment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ownerUserId])
+}
+
+/// Many-to-many between Users and BusinessProfiles, with a role.
+/// Lets a single user belong to multiple businesses (lightweight multi-tenancy).
+model Membership {
+  id         String         @id @default(cuid())
+  userId     String
+  businessId String
+  role       MembershipRole @default(TECHNICIAN)
+
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  business BusinessProfile @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, businessId])
+  @@index([businessId])
+}
+
+// ─── Operations ───────────────────────────────────────────────────────
+
+model Customer {
+  id         String  @id @default(cuid())
+  businessId String
+
+  name    String
+  phone   String
+  email   String?
+  address String?
+  notes   String?
+
+  business BusinessProfile @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  jobs     Job[]
+  calls    Call[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Phone is the strongest dedupe key for trade business customers.
+  @@unique([businessId, phone])
+  @@index([businessId, email])
+  @@index([businessId, name])
+}
+
+model Worker {
+  id         String     @id @default(cuid())
+  businessId String
+
+  name  String
+  phone String?
+  email String?
+  role  WorkerRole @default(TECHNICIAN)
+  active Boolean   @default(true)
+
+  business     BusinessProfile @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  jobs         Job[]
+  appointments Appointment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([businessId, active])
+}
+
+model Job {
+  id         String @id @default(cuid())
+  businessId String
+  customerId String
+  workerId   String?
+
+  issue   String
+  address String?
+
+  preferredDate DateTime?
+  preferredTime String? // "HH:mm" local to the business timezone
+
+  scheduledStart DateTime?
+  scheduledEnd   DateTime?
+
+  status   JobStatus   @default(PENDING)
+  priority JobPriority @default(NORMAL)
+  notes    String?
+
+  business    BusinessProfile @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  customer    Customer        @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  worker      Worker?         @relation(fields: [workerId], references: [id])
+  appointment Appointment?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([businessId, status])
+  @@index([businessId, priority])
+  @@index([customerId])
+  @@index([workerId, scheduledStart])
+}
+
+/// Calendar slot for a job. One Appointment per Job (1:1).
+model Appointment {
+  id         String @id @default(cuid())
+  businessId String
+  jobId      String @unique
+  workerId   String
+
+  start DateTime
+  end   DateTime
+
+  status AppointmentStatus @default(SCHEDULED)
+  notes String?
+
+  business BusinessProfile @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  job      Job             @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  worker   Worker          @relation(fields: [workerId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([workerId, start])
+  @@index([businessId, start])
+}
+
+/// Inbound call record. Filled in by the AI receptionist (M5).
+model Call {
+  id         String  @id @default(cuid())
+  businessId String
+  customerId String?
+
+  fromPhone String
+
+  /// Length of call in seconds.
+  duration Int?
+
+  transcript  String?
+  summary     String?
+  isEmergency Boolean  @default(false)
+
+  business BusinessProfile @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  customer Customer?       @relation(fields: [customerId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([businessId, createdAt])
+  @@index([businessId, isEmergency])
+}

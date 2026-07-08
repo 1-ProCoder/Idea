@@ -1,0 +1,26 @@
+{
+  "name": "flowfix-ai",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI receptionist, scheduler, and job-management for plumbers, electricians, and HVAC businesses.",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -k -n web,api -c blue,green \"npm -w @flowfix/web run dev\" \"npm -w @flowfix/api run dev\"",
+    "dev:web": "npm -w @flowfix/web run dev",
+    "dev:api": "npm -w @flowfix/api run dev",
+    "build": "npm -w @flowfix/web run build && npm -w @flowfix/api run build",
+    "typecheck": "npm -w @flowfix/shared run typecheck && npm -w @flowfix/web run typecheck && npm -w @flowfix/api run typecheck",
+    "prisma:generate": "npm -w @flowfix/api run prisma:generate",
+    "prisma:migrate": "npm -w @flowfix/api run prisma:migrate"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "typescript": "^5.4.5"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

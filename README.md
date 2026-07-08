@@ -1,129 +1,188 @@
-# Project Name
+# FlowFix AI
 
-> A short, one-sentence description of what this project does.
->
-> Example: *A web app that lets users track their daily reading habits and share progress with friends.*
+> AI receptionist, scheduler, and job-management for plumbing, electrical, and HVAC businesses. Never miss a call. Never double-book a job.
 
-## Table of Contents
+**Status:** Milestone 1 in progress — project setup, authentication, database.
 
-- [About](#about)
-- [Features](#features)
-- [Tech Stack](#tech-stack)
-- [Getting Started](#getting-started)
-- [Usage](#usage)
-- [Project Structure](#project-structure)
-- [Roadmap](#roadmap)
-- [Contributing](#contributing)
-- [License](#license)
-- [Contact](#contact)
-
-## About
-
-<!-- Provide a longer description of your project: what problem does it solve, who is it for, and what makes it unique. Replace this paragraph with 2–4 sentences describing the motivation and goals of the project. -->
-
-## Features
-
-<!-- List the key features of your project. Replace these bullets with the real ones. -->
-
-- ✅ Feature one — short description
-- ✅ Feature two — short description
-- ✅ Feature three — short description
-- 🚧 Feature four — coming soon
-
-## Tech Stack
-
-<!-- List the main technologies, frameworks, and tools used. Replace these with the actual stack. -->
-
-- **Language:**
-- **Framework:**
-- **Database:**
-- **Tooling:**
-
-## Getting Started
-
-### Prerequisites
-
-<!-- List anything a user needs installed before they can run the project. -->
-
-- Prerequisite 1 (e.g. Node.js v18+)
-- Prerequisite 2 (e.g. PostgreSQL 14+)
-
-### Installation
-
-```bash
-# Clone the repo
-git clone https://github.com/1-ProCoder/Idea.git
-
-# Move into the project directory
-cd Idea
-
-# Install dependencies
-# Replace `npm` with the package manager this project actually uses
-# (e.g. pnpm, yarn, bun, pip, poetry, cargo, uv, etc.)
-npm install
-```
-
-## Usage
-
-<!-- Show how to run and use the project. Replace these commands with the real ones. -->
-
-```bash
-# Run the development server
-npm run dev
-
-# Build for production
-npm run build
-
-# Run tests
-npm test
-```
-
-<!-- Add screenshots, GIFs, or example output here if applicable. -->
-
-## Project Structure
-
-<!-- Briefly describe the layout of the source code. -->
-
-```
-.
-├── src/        # Application source code
-├── tests/      # Automated tests
-├── docs/       # Additional documentation
-└── README.md   # You are here
-```
-
-## Roadmap
-
-<!-- Optional — keep or delete depending on whether you publish this elsewhere. -->
-
-- [ ] Milestone 1
-- [ ] Milestone 2
-- [ ] Milestone 3
-
-## Contributing
-
-<!-- Optional — keep if this is an open-source project accepting contributions. -->
-
-Contributions are welcome! Please open an issue first to discuss what you'd like to change.
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a pull request
-
-## License
-
-<!-- Replace with the actual license you want to use. -->
-
-Distributed under the MIT License. See `LICENSE` for more information.
-
-## Contact
-
-<!-- Fill in or remove if not applicable. -->
-
-- **Your Name** — you@example.com
+See [Build Order](#build-order) for the full 10-milestone roadmap.
 
 ---
 
-⭐ Replace with a call-to-action relevant to your project.
+## What it does
+
+A production-ready SaaS for service businesses (1–10 workers). The system:
+
+1. Answers inbound calls with an AI voice receptionist.
+2. Captures customer details (name, phone, address, problem).
+3. Detects emergencies and escalates immediately.
+4. Books appointments onto staff calendars automatically.
+5. Prevents double-bookings with realtime availability checks.
+6. Creates jobs and dispatches them to the right worker.
+7. Sends confirmations via SMS and email.
+8. Provides a dashboard for managing customers, calls, jobs, and staff.
+
+---
+
+## Target users
+
+- Plumbing businesses
+- Electrical businesses
+- HVAC businesses
+
+Typical company size: 1–10 workers.
+
+---
+
+## Tech stack
+
+| Layer             | Choice                                       | Notes                                  |
+| ----------------- | -------------------------------------------- | -------------------------------------- |
+| Frontend          | Vite, React, TypeScript                      | SPA, deployed to Vercel                |
+| UI                | Tailwind CSS                                 | Utility-first styling                  |
+| Data fetching     | TanStack Query                               | Server-state caching                   |
+| Routing           | React Router                                 | SPA navigation                         |
+| Auth              | Clerk                                        | Sign-in/up, sessions, MFA              |
+| Backend           | Node.js, Express, TypeScript                 | Deployed to Railway                    |
+| ORM               | Prisma                                       | Type-safe DB access                    |
+| Database          | PostgreSQL                                   | Production + local dev                 |
+| Realtime *(later)*| Socket.IO                                    | Calendar + job updates                 |
+| Payments *(later)*| Stripe                                       | Subscriptions                          |
+| Voice *(later)*   | Twilio + Deepgram + Claude API               | AI receptionist                        |
+| Maps *(later)*    | Google Maps API                              | Dispatch visualisation                 |
+
+---
+
+## Project structure
+
+Monorepo using **npm workspaces**.
+
+```
+.
+├── apps/
+│   ├── web/         # React + Vite SPA (deploy to Vercel)
+│   └── api/         # Express + Prisma backend (deploy to Railway)
+├── packages/
+│   └── shared/      # Shared TypeScript types & enums
+├── README.md
+└── package.json     # Workspace root
+```
+
+---
+
+## Getting started
+
+### Prerequisites
+
+- **Node.js ≥ 20**
+- **PostgreSQL ≥ 14** (local install, Docker container, or hosted e.g. Neon / Railway)
+- A **Clerk** account (free tier is fine for development)
+
+### 1. Install dependencies
+
+```bash
+npm install
+```
+
+### 2. Provision services
+
+| Service     | What to do                                                                  |
+| ----------- | --------------------------------------------------------------------------- |
+| Postgres    | Create a development database.                                               |
+| Clerk       | Create a **free dev application**, enable Email + Google as sign-in modes. |
+
+### 3. Configure env vars
+
+```bash
+cp apps/web/.env.example apps/web/.env
+cp apps/api/.env.example apps/api/.env
+```
+
+Fill in the keys from each service. See comments in each `.env.example` for what each key is for.
+
+### 4. Run database migrations
+
+```bash
+cd apps/api
+npx prisma migrate dev --name init
+```
+
+This creates the core tables: `User`, `BusinessProfile`, `Membership`, `Customer`, `Worker`, `Job`, `Appointment`, `Call`.
+
+### 5. Start the dev servers
+
+In two terminals:
+
+```bash
+# Terminal 1 — backend (port 4000)
+npm -w @flowfix/api run dev
+
+# Terminal 2 — frontend (port 5173)
+npm -w @flowfix/web run dev
+```
+
+Or both at once from the repo root:
+
+```bash
+npm run dev
+```
+
+Open <http://localhost:5173> to see the landing page. Sign-in / sign-up flows are wired through Clerk. The `/me` API endpoint on the backend verifies the Clerk session JWT.
+
+### 6. Clerk webhooks (optional in dev)
+
+To sync Clerk `user.created` events into your local `User` table:
+
+1. Run `ngrok http 4000` to get a public URL.
+2. In Clerk's dashboard, add a webhook endpoint pointing at `<ngrok-url>/webhooks/clerk`.
+3. Subscribe to the `user.created`, `user.updated`, and `user.deleted` events.
+4. Copy the Signing Secret into `CLERK_WEBHOOK_SIGNING_SECRET` in `apps/api/.env`.
+
+Without this, web sign-in/sign-up still works — the `/me` route just verifies the Clerk JWT without writing a local row.
+
+---
+
+## Build order
+
+| # | Milestone                                | Status          |
+| - | ---------------------------------------- | --------------- |
+| 1 | Project setup, authentication, database  | 🚧 In progress  |
+| 2 | Customer management                      | ⬜ Not started  |
+| 3 | Job management                           | ⬜ Not started  |
+| 4 | Calendar and scheduling                  | ⬜ Not started  |
+| 5 | AI receptionist (Twilio + Deepgram + Claude) | ⬜ Not started |
+| 6 | Notifications (SMS + email)              | ⬜ Not started  |
+| 7 | Dashboard and analytics                  | ⬜ Not started  |
+| 8 | Performance optimisation                 | ⬜ Not started  |
+| 9 | Security hardening                       | ⬜ Not started  |
+| 10| Production deployment                   | ⬜ Not started  |
+
+---
+
+## Development method
+
+For every feature, the same loop:
+
+1. Plan implementation.
+2. Implement feature.
+3. Run application.
+4. Test feature.
+5. Try to break feature intentionally.
+6. Fix bugs.
+7. Refactor.
+8. Run regression tests.
+9. Measure performance.
+10. Compare against requirements.
+11. Repeat until all acceptance criteria + performance targets pass.
+
+**Never stop after code compiles.** Only move to the next milestone when the current one passes.
+
+---
+
+## Repository
+
+- GitHub: <https://github.com/1-ProCoder/Idea>
+- Owner: `1-ProCoder`
+
+---
+
+⭐ Built for tradespeople who can't afford to miss a call.
