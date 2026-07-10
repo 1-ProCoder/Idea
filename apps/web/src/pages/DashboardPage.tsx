@@ -1,115 +1,551 @@
-import { useAuth, useUser } from '@clerk/clerk-react';
+import { useUser } from '@clerk/clerk-react';
+import { useMemo } from 'react';
+import { motion } from 'framer-motion';
+import {
+  ArrowUpRight,
+  Briefcase,
+  ChevronRight,
+  Gauge,
+  PhoneCall,
+  Plus,
+  Sparkles,
+  Users,
+  Wrench,
+  Zap,
+} from 'lucide-react';
+
+import { PageHeader } from '../components/layout/PageHeader';
+import { StatCard } from '../components/ui/StatCard';
+import { Sparkline } from '../components/ui/Sparkline';
+import { EmptyState } from '../components/ui/EmptyState';
+import { useAuthedFetch } from '../hooks/useAuthedFetch';
 import { useQuery } from '@tanstack/react-query';
+import {
+  getDashboardStats,
+  type DashboardStats,
+  type AppointmentListItem,
+  type JobListItem,
+} from '../lib/api-dashboard';
+import {
+  listCalls,
+  type CallListResponse,
+  type CallDto,
+} from '../lib/api-calls';
 
 type MeResponse = {
   userId: string;
   sessionId: string | null;
 };
 
-export default function DashboardPage() {
-  const { user, isLoaded } = useUser();
-  const { getToken } = useAuth();
+const fadeUp = {
+  initial: { opacity: 0, y: 12 },
+  animate: { opacity: 1, y: 0 },
+};
 
-  const {
-    data: me,
-    isLoading,
-    isError,
-    error,
-  } = useQuery<MeResponse>({
+function timeOfDayGreeting(): string {
+  const h = new Date().getHours();
+  if (h < 12) return 'Good morning';
+  if (h < 18) return 'Good afternoon';
+  return 'Good evening';
+}
+
+function relativeTime(iso: string): string {
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const min = Math.floor(diffMs / 60_000);
+  if (min < 1) return 'just now';
+  if (min === 1) return '1 min ago';
+  if (min < 60) return `${min} min ago`;
+  const h = Math.floor(min / 60);
+  if (h === 1) return '1 h ago';
+  if (h < 24) return `${h} h ago`;
+  return `${Math.floor(h / 24)} d ago`;
+}
+
+function startTimeLabel(iso: string): string {
+  const d = new Date(iso);
+  return d
+    .toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    .replace(/^24:/, '00:');
+}
+
+function priorityBadge(
+  priority: 'NORMAL' | 'URGENT' | 'EMERGENCY',
+): { label: string; className: string } {
+  switch (priority) {
+    case 'EMERGENCY':
+      return {
+        label: 'Emergency',
+        className: 'bg-danger/15 text-danger ring-danger/30',
+      };
+    case 'URGENT':
+      return {
+        label: 'Urgent',
+        className: 'bg-warning/15 text-warning ring-warning/30',
+      };
+    case 'NORMAL':
+    default:
+      return {
+        label: 'Standard',
+        className: 'bg-primary/15 text-primary ring-primary/30',
+      };
+  }
+}
+
+function jobStatusBadge(status: JobListItem['status']): {
+  label: string;
+  className: string;
+} {
+  switch (status) {
+    case 'PENDING':
+      return {
+        label: 'Pending',
+        className: 'bg-warning/15 text-warning ring-warning/30',
+      };
+    case 'SCHEDULED':
+      return {
+        label: 'Scheduled',
+        className: 'bg-primary/15 text-primary ring-primary/30',
+      };
+    case 'IN_PROGRESS':
+      return {
+        label: 'In progress',
+        className: 'bg-accent/15 text-accent ring-accent/30',
+      };
+    case 'COMPLETED':
+      return {
+        label: 'Completed',
+        className: 'bg-success/15 text-success ring-success/30',
+      };
+    case 'CANCELLED':
+      return {
+        label: 'Cancelled',
+        className: 'bg-muted text-muted-foreground ring-white/[0.08]',
+      };
+  }
+}
+
+export default function DashboardPage(): JSX.Element {
+  const { user, isLoaded } = useUser();
+  const authedFetch = useAuthedFetch();
+
+  // /api/me requires auth (requireAuth() on the server) — route the
+  // fetch through useAuthedFetch so the Clerk JWT is automatically
+  // attached. Without this header the endpoint returns 401 and the
+  // "Backend handshake: checking…" pill stays red forever.
+  //
+  // NOTE: we intentionally don't name the closure `fetch` — that would
+  // shadow the global `fetch` and break the inner `await fetch('/api/me', …)`
+  // call below. Name it `authedFetch` instead.
+  const meQuery = useQuery<MeResponse>({
     queryKey: ['me'],
-    queryFn: async () => {
-      // Clerk uses bearer JWTs (not same-origin cookies) by default, so the
-      // Express backend needs the session token in the Authorization header.
-      const token = await getToken({ skipCache: true });
-      const res = await fetch('/api/me', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) {
-        const text = await res.text().catch(() => '');
-        throw new Error(`Backend returned ${res.status}: ${text || res.statusText}`);
-      }
-      return res.json() as Promise<MeResponse>;
-    },
+    queryFn: () =>
+      authedFetch(async (token) => {
+        const res = await fetch('/api/me', {
+          headers: {
+            Accept: 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        if (!res.ok) {
+          const text = await res.text().catch(() => '');
+          throw new Error(
+            `Backend returned ${res.status}: ${text || res.statusText}`,
+          );
+        }
+        return (await res.json()) as MeResponse;
+      }),
     enabled: isLoaded,
+    staleTime: 60_000,
   });
 
-  if (!isLoaded) {
-    return <p className="p-6 text-stone-500">Loading…</p>;
-  }
+  const statsQuery = useQuery<DashboardStats>({
+    queryKey: ['dashboard-stats'],
+    queryFn: () => authedFetch((token) => getDashboardStats(token)),
+    enabled: isLoaded,
+    staleTime: 30_000,
+  });
 
-  const firstName = user?.firstName ?? user?.username ?? 'there';
+  const callsQuery = useQuery<CallListResponse>({
+    queryKey: ['calls', { limit: 5 }],
+    queryFn: () => authedFetch((token) => listCalls(token, { limit: 5 })),
+    enabled: isLoaded,
+    staleTime: 30_000,
+  });
+
+  const firstName = useMemo(
+    () => user?.firstName ?? user?.username ?? 'there',
+    [user],
+  );
+
+  const stats = statsQuery.data;
+  const calls: CallDto[] = callsQuery.data?.items ?? [];
+  const todayAppointments: AppointmentListItem[] =
+    stats?.todayAppointments ?? [];
+  const recentJobs: JobListItem[] = stats?.recentJobs ?? [];
+  const spark = stats?.sparklines.calls ?? [];
+
+  const totalCalls = stats?.totals.totalCalls ?? 0;
+  const jobsToday = stats?.totals.jobsToday ?? 0;
+  const emergencyJobs = stats?.totals.emergencyJobs ?? 0;
+  const completionRate = stats?.totals.completionRate ?? 0;
+  const activeTechnicians = stats?.totals.activeTechnicians ?? 0;
+
+  const isAllEmpty =
+    !statsQuery.isPending &&
+    !statsQuery.isError &&
+    totalCalls === 0 &&
+    jobsToday === 0 &&
+    emergencyJobs === 0 &&
+    todayAppointments.length === 0 &&
+    recentJobs.length === 0 &&
+    calls.length === 0;
 
   return (
-    <div className="max-w-6xl mx-auto px-6 py-10 space-y-8">
-      <header>
-        <h1 className="text-3xl font-bold tracking-tight">Welcome, {firstName}</h1>
-        <p className="text-stone-600 mt-1">
-          Backend handshake:{' '}
-          {isLoading && <span className="text-stone-500">checking…</span>}
-          {me && <span className="text-emerald-700">✓ Clerk JWT verified</span>}
-          {isError && (
-            <span className="text-rose-700">✗ {String((error as Error).message)}</span>
-          )}
-        </p>
-      </header>
+    <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-8 pb-32 space-y-8">
+      <PageHeader
+        eyebrow="Today"
+        title={`${timeOfDayGreeting()}, ${firstName} 👋`}
+        subtitle="Here's what's happening in your business today."
+        actions={
+          <>
+            <button className="px-4 py-2 rounded-lg glass-card text-sm font-medium text-foreground/90 hover:text-foreground hover:bg-white/[0.06] transition-colors inline-flex items-center gap-2">
+              <Plus className="w-4 h-4" />
+              New Job
+            </button>
+            <button className="px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 text-sm font-medium shadow-sm shadow-primary/30 hover:shadow-primary/50 transition-all inline-flex items-center gap-2">
+              <Plus className="w-4 h-4" />
+              Add Customer
+            </button>
+          </>
+        }
+      />
 
-      <section>
-        <h2 className="text-lg font-semibold">Today</h2>
-        <ul className="mt-3 grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[
-            { label: 'Calls today', milestone: 'M7' },
-            { label: 'Jobs today', milestone: 'M3' },
-            { label: 'Emergency jobs', milestone: 'M5' },
-            { label: 'Revenue (week)', milestone: 'M7' },
-          ].map(({ label, milestone }) => (
-            <li
-              key={label}
-              className="border border-stone-200 rounded-lg p-4 bg-white"
+      {isAllEmpty && (
+        <EmptyState
+          icon={Sparkles}
+          title="Welcome — no activity yet"
+          description="Your AI receptionist will log calls here as customers reach out. Add your first customer to start tracking jobs and technicians."
+          action={
+            <a
+              href="/customers"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shadow-lg shadow-primary/30"
             >
-              <p className="font-medium text-stone-900">{label}</p>
-              <p className="text-xs text-stone-500 mt-1">
-                Coming in milestone {milestone}
-              </p>
-            </li>
-          ))}
-        </ul>
-      </section>
+              <Plus className="w-4 h-4" />
+              Add your first customer
+            </a>
+          }
+        />
+      )}
 
-      <section>
-        <h2 className="text-lg font-semibold">Roadmap</h2>
-        <ul className="mt-3 grid sm:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
-          {[
-            { id: 'M2', label: 'Customer management (CRUD + dedupe)', done: false },
-            { id: 'M3', label: 'Job management (statuses, priority)', done: false },
-            { id: 'M4', label: 'Calendar + scheduling (no double-booking)', done: false },
-            { id: 'M5', label: 'AI receptionist (Twilio + Claude)', done: false },
-            { id: 'M6', label: 'Notifications (SMS + email)', done: false },
-            { id: 'M7', label: 'Dashboard charts + analytics', done: false },
-          ].map((m) => (
-            <li
-              key={m.id}
-              className={[
-                'border rounded-lg p-4 flex items-center justify-between gap-3',
-                m.done
-                  ? 'border-emerald-200 bg-emerald-50/50'
-                  : 'border-stone-200 bg-white',
-              ].join(' ')}
+      {!isAllEmpty && (
+        <>
+          {/* 4-card stat row (Revenue dropped: not part of the stats API) */}
+          <motion.section
+            {...fadeUp}
+            transition={{ duration: 0.4 }}
+            className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4"
+            aria-label="Today stats"
+          >
+            <StatCard
+              label="Calls (7d)"
+              value={String(totalCalls)}
+              icon={PhoneCall}
+              sparkline={spark}
+            />
+            <StatCard
+              label="Jobs today"
+              value={String(jobsToday)}
+              icon={Briefcase}
+              accent="success"
+            />
+            <StatCard
+              label="Emergency jobs"
+              value={String(emergencyJobs)}
+              icon={Zap}
+              accent="warning"
+            />
+            <StatCard
+              label="Completion"
+              value={`${completionRate}%`}
+              icon={Gauge}
+            />
+          </motion.section>
+
+          {/* 2nd row — recent calls + today's schedule + recent jobs */}
+          <section className="grid lg:grid-cols-3 gap-4">
+            <Panel title="Recent calls" actionLabel="View all" icon={PhoneCall}>
+              {calls.length === 0 ? (
+                <div className="py-8 text-center text-sm text-muted-foreground">
+                  No calls yet — they'll appear here as they come in.
+                </div>
+              ) : (
+                <ul className="divide-y divide-white/[0.04]">
+                  {calls.slice(0, 5).map((c) => {
+                    const label = c.summary ?? c.fromPhone;
+                    const badge = c.isEmergency
+                      ? {
+                          label: 'Emergency',
+                          className:
+                            'bg-danger/15 text-danger ring-danger/30',
+                        }
+                      : {
+                          label: 'Answered',
+                          className:
+                            'bg-primary/15 text-primary ring-primary/30',
+                        };
+                    return (
+                      <li
+                        key={c.id}
+                        className="flex items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-foreground truncate">
+                            {c.summary ? 'Caller' : c.fromPhone}
+                          </p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {label}
+                          </p>
+                        </div>
+                        <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                          <span className="text-[10px] font-mono text-muted-foreground tabular-nums">
+                            {relativeTime(c.createdAt)}
+                          </span>
+                          <span
+                            className={[
+                              'inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-semibold ring-1',
+                              badge.className,
+                            ].join(' ')}
+                          >
+                            {badge.label}
+                          </span>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </Panel>
+
+            <Panel
+              title="Today's schedule"
+              actionLabel="Open calendar"
+              icon={Sparkles}
             >
-              <span>{m.label}</span>
-              <span
-                className={[
-                  'text-xs font-mono px-2 py-0.5 rounded-md',
-                  m.done
-                    ? 'bg-emerald-100 text-emerald-800'
-                    : 'bg-stone-100 text-stone-700',
-                ].join(' ')}
+              {todayAppointments.length === 0 ? (
+                <div className="py-8 text-center text-sm text-muted-foreground">
+                  Nothing scheduled today. New bookings will appear here.
+                </div>
+              ) : (
+                <ul className="space-y-2.5">
+                  {todayAppointments.map((a) => {
+                    const priority = priorityBadge(a.priority);
+                    return (
+                      <li
+                        key={a.id}
+                        className="flex items-center gap-3 p-3 rounded-xl glass-card hover:bg-white/[0.06] transition-colors"
+                      >
+                        <span className="w-14 text-center flex-shrink-0">
+                          <span className="block text-base font-bold text-foreground tabular-nums">
+                            {startTimeLabel(a.start)}
+                          </span>
+                        </span>
+                        <div className="min-w-0 flex-1 border-l border-white/[0.08] pl-3">
+                          <p className="text-sm font-medium text-foreground truncate">
+                            {a.customerName}
+                          </p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {a.issue} · with {a.workerName}
+                          </p>
+                        </div>
+                        <span
+                          className={[
+                            'inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-semibold ring-1 flex-shrink-0',
+                            priority.className,
+                          ].join(' ')}
+                        >
+                          {priority.label}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </Panel>
+
+            <Panel title="Recent jobs" actionLabel="View all" icon={Wrench}>
+              {recentJobs.length === 0 ? (
+                <div className="py-8 text-center text-sm text-muted-foreground">
+                  No jobs yet — they'll appear here as calls convert into
+                  work.
+                </div>
+              ) : (
+                <ul className="divide-y divide-white/[0.04]">
+                  {recentJobs.map((j) => {
+                    const sb = jobStatusBadge(j.status);
+                    return (
+                      <li
+                        key={j.id}
+                        className="flex items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-foreground truncate">
+                            {j.issue}
+                          </p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {j.customerName} · {j.workerName ?? 'Unassigned'}
+                          </p>
+                        </div>
+                        <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                          <span className="text-[10px] font-mono text-muted-foreground tabular-nums">
+                            {relativeTime(j.updatedAt)}
+                          </span>
+                          <span
+                            className={[
+                              'inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-semibold ring-1',
+                              sb.className,
+                            ].join(' ')}
+                          >
+                            {sb.label}
+                          </span>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </Panel>
+          </section>
+
+          {/* 3rd row — 7-day calls chart + active techs summary */}
+          <section className="grid lg:grid-cols-3 gap-4">
+            <div className="lg:col-span-2 glass-card rounded-2xl p-5">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                    Calls (7 days)
+                  </p>
+                  <p className="text-2xl font-bold text-foreground mt-0.5 tabular-nums">
+                    {totalCalls}
+                    <span className="ml-2 text-sm font-semibold text-muted-foreground">
+                      last 7 days
+                    </span>
+                  </p>
+                </div>
+              </div>
+              {spark.length === 0 ? (
+                <div className="h-44 flex items-center justify-center text-sm text-muted-foreground">
+                  No calls in the last week.
+                </div>
+              ) : (
+                <div className="h-44">
+                  <Sparkline
+                    data={spark}
+                    className="w-full h-full"
+                    strokeClassName="text-primary"
+                    fillClassName="text-primary/15"
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className="glass-card rounded-2xl p-5">
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                  Active technicians
+                </p>
+                <ArrowUpRight className="w-3.5 h-3.5 text-muted-foreground" />
+              </div>
+              <div className="flex items-center gap-3 py-4">
+                <span className="w-12 h-12 rounded-xl bg-primary/15 text-primary ring-1 ring-primary/30 flex items-center justify-center">
+                  <Users className="w-6 h-6" />
+                </span>
+                <div>
+                  <p className="text-3xl font-bold text-foreground tabular-nums">
+                    {activeTechnicians}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {activeTechnicians === 1
+                      ? 'technician active'
+                      : 'technicians active'}
+                  </p>
+                </div>
+              </div>
+              <a
+                href="/technicians"
+                className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:text-primary/80 transition-colors"
               >
-                {m.id}
-              </span>
-            </li>
-          ))}
-        </ul>
-      </section>
+                Manage team
+                <ChevronRight className="w-3 h-3" />
+              </a>
+            </div>
+          </section>
+        </>
+      )}
+
+      {statsQuery.isError && (
+        <div
+          role="alert"
+          className="rounded-md border border-destructive/40 bg-destructive/10 p-4"
+        >
+          <p className="font-medium text-destructive">
+            Couldn't load dashboard stats
+          </p>
+          <p className="text-sm text-destructive/80 mt-1">
+            {(() => {
+              const err = statsQuery.error as { message?: string };
+              return err?.message ?? 'Unknown error';
+            })()}
+          </p>
+        </div>
+      )}
+
+      {/* backend handshake pill (debug) */}
+      <div className="text-xs text-muted-foreground inline-flex items-center gap-2 px-3 py-1.5 rounded-full glass-card">
+        <span
+          className={[
+            'w-1.5 h-1.5 rounded-full',
+            meQuery.data ? 'bg-success' : 'bg-muted-foreground/40',
+          ].join(' ')}
+        />
+        {meQuery.data
+          ? `Clerk JWT verified · ${meQuery.data.userId.slice(0, 12)}…`
+          : 'Backend handshake: checking…'}
+      </div>
+    </div>
+  );
+}
+
+/* ----------------- sub-components ----------------- */
+
+function Panel({
+  title,
+  actionLabel,
+  icon: Icon,
+  children,
+}: {
+  title: string;
+  actionLabel: string;
+  icon: typeof PhoneCall;
+  children: React.ReactNode;
+}): JSX.Element {
+  return (
+    <div className="glass-card rounded-2xl p-5">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <Icon className="w-3.5 h-3.5 text-primary" />
+          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+            {title}
+          </p>
+        </div>
+        <button
+          type="button"
+          className="text-xs font-semibold text-primary hover:text-primary/80 transition-colors inline-flex items-center gap-0.5"
+        >
+          {actionLabel}
+          <ChevronRight className="w-3 h-3" />
+        </button>
+      </div>
+      {children}
     </div>
   );
 }

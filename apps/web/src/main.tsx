@@ -6,6 +6,29 @@ import { ClerkProvider } from '@clerk/clerk-react';
 
 import App from './App';
 import './index.css';
+import { ToastProvider } from './components/ui/Toast';
+
+// Vendor-noise filter — `@clerk/clerk-react` v4 prints
+// `[DEFAULT]: WARN : Using DEFAULT root logger` once on first mount when
+// no logger is configured for the SDK. It's a benign dev-only warning
+// that doesn't affect functionality but shows in every browser console.
+// Filter at the source while preserving every other warning so real
+// issues stay visible. Remove this block once Clerk ships a fix (or
+// you start configuring a real logger).
+if (typeof console !== 'undefined' && typeof console.warn === 'function') {
+  const originalWarn = console.warn.bind(console);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  console.warn = function filterClerkDefaultLogger(...args: any[]): void {
+    const first = args[0];
+    if (
+      typeof first === 'string' &&
+      first.toLowerCase().includes('using default root logger')
+    ) {
+      return;
+    }
+    originalWarn(...args);
+  };
+}
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -17,7 +40,14 @@ const queryClient = new QueryClient({
   },
 });
 
-const clerkPublishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as string | undefined;
+const clerkPublishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as
+  | string
+  | undefined;
+
+function isValidClerkPublishableKey(key: string | undefined): key is string {
+  if (!key) return false;
+  return /^pk_(test|live)_[A-Za-z0-9_-]{20,}$/.test(key);
+}
 
 function MissingEnvScreen() {
   return (
@@ -47,21 +77,39 @@ function MissingEnvScreen() {
           Paste your Clerk <em>Publishable Key</em> (starts with{' '}
           <code>pk_test_…</code>).
         </li>
-        <li>Restart <code>npm run dev</code> from the project root.</li>
+        <li>
+          Restart <code>npm run dev</code> from the project root.
+        </li>
       </ol>
       <p style={{ color: '#78716c', marginTop: '1.5rem', fontSize: '0.875rem' }}>
-        See the project <code>README.md</code> for full setup steps, including getting a
-        free Clerk dev account.
+        See the project <code>README.md</code> for full setup steps, including
+        getting a free Clerk dev account.
       </p>
     </main>
   );
 }
 
+/**
+ * `Providers` mounts everything that should be available to the entire
+ * app, in dependency order:
+ *   1. ToastProvider — global toast bus (mounted high so toast stack
+ *      portals on top of routes).
+ *   2. QueryClientProvider — React Query cache.
+ *   3. BrowserRouter — react-router.
+ *
+ * Demo mode was removed entirely; signed-out users land on the marketing
+ * homepage and are routed through `<RedirectToSignIn>` when they try to
+ * enter any dashboard route. All dashboard pages fetch from the live API
+ * via Clerk-authenticated `useAuthedFetch` and render `<EmptyState>` when
+ * the account has no data.
+ */
 function Providers({ children }: { children: ReactNode }) {
   return (
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>{children}</BrowserRouter>
-    </QueryClientProvider>
+    <ToastProvider>
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>{children}</BrowserRouter>
+      </QueryClientProvider>
+    </ToastProvider>
   );
 }
 
@@ -70,7 +118,7 @@ if (!rootEl) throw new Error('#root element not found');
 
 createRoot(rootEl).render(
   <StrictMode>
-    {clerkPublishableKey ? (
+    {isValidClerkPublishableKey(clerkPublishableKey) ? (
       <ClerkProvider publishableKey={clerkPublishableKey}>
         <Providers>
           <App />

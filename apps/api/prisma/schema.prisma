@@ -83,6 +83,15 @@ model BusinessProfile {
   address  String?
   timezone String  @default("UTC")
 
+  // ─── Settings blobs ────────────────────────────────────────────────
+  // We store Settings/Branding/AI/Notification preferences as JSON to
+  // avoid schema churn every time the product team ships a toggle.
+  // Postgres maps `Json` to JSONB; SQLite maps to TEXT. Both work for
+  // our read/write patterns.
+  brandingJson         Json?
+  notificationPrefsJson Json?
+  aiConfigJson         Json?
+
   owner User @relation("BusinessOwner", fields: [ownerUserId], references: [id])
 
   memberships  Membership[]

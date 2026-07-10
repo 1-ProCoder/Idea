@@ -2,8 +2,88 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  :root,
+  .dark {
+    --background: 220 30% 5%;
+    --foreground: 0 0% 100%;
+
+    --card: 220 20% 8%;
+    --card-foreground: 0 0% 100%;
+
+    --popover: 220 20% 8%;
+    --popover-foreground: 0 0% 100%;
+
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 252 95% 60%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 220 16% 14%;
+    --muted-foreground: 215 20% 70%;
+
+    --accent: 252 95% 60%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 160 84% 39%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 0%;
+
+    --danger: 0 84% 60%;
+    --danger-foreground: 0 0% 100%;
+
+    --border: 0 0% 100%;
+    --border-alpha: 0.08;
+    --input: 220 16% 18%;
+    --ring: 217 91% 60%;
+
+    --radius: 1.125rem; /* 18px */
+  }
+}
+
 html,
 body,
 #root {
   height: 100%;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: 'cv11', 'ss01', 'ss03';
+}
+
+@layer utilities {
+  .glass-card {
+    background-color: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  .glass-card-strong {
+    background-color: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  /* Reusable subtle scrollbar in dark theme */
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.08);
+    border-radius: 9999px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
 }
