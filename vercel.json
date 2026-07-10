@@ -1,0 +1,11 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "npm install && npm -w @flowfix/web run build",
+  "installCommand": "npm install",
+  "outputDirectory": "apps/web/dist",
+  "framework": null,
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "https://FLOWFIX_API_PROD_URL/api/$1" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}

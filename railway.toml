@@ -1,0 +1,26 @@
+# Railway deploy config for the @flowfix/api service.
+#
+# Uses our Dockerfile at the repo root as the builder so that the
+# workspace install + Prisma generate + tsc build all happen in a
+# deterministic, reproducible container.
+#
+# Override env vars in the Railway UI's "Variables" tab — see DEPLOY.md
+# for the canonical list (DATABASE_URL, CLERK_SECRET_KEY,
+# CLERK_WEBHOOK_SIGNING_SECRET, WEB_ORIGIN).
+
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+# Runs ONCE per release (before the new container starts). Use it for
+# schema migrations. The Dockerfile's CMD ALSO runs `migrate deploy` on
+# every container start as a safety net.
+releaseCommand = "cd apps/api && npx prisma migrate deploy"
+
+startCommand = "node dist/index.js"
+
+healthcheckPath = "/api/health"
+healthcheckTimeout = 30
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3

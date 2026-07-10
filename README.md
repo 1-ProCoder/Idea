@@ -154,7 +154,7 @@ Without this, web sign-in/sign-up still works — the `/me` route just verifies 
 | 7 | Dashboard and analytics                  | ⬜ Not started  |
 | 8 | Performance optimisation                 | ⬜ Not started  |
 | 9 | Security hardening                       | ⬜ Not started  |
-| 10| Production deployment                   | ⬜ Not started  |
+| 10| Production deployment (Vercel + Railway + Clerk) | 📖 See [DEPLOY.md](./DEPLOY.md) |
 
 ---
 
