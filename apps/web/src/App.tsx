@@ -8,6 +8,7 @@ import Navbar from './components/Navbar';
 import HomePage from './pages/HomePage';
 import SignInPage from './pages/SignInPage';
 import SignUpPage from './pages/SignUpPage';
+import WaitlistPage from './pages/WaitlistPage';
 import DashboardPage from './pages/DashboardPage';
 import CustomersPage from './pages/CustomersPage';
 import CallsPage from './pages/CallsPage';
@@ -78,6 +79,7 @@ export default function App() {
           />
           <Route path="/sign-in/*" element={<SignInPage />} />
           <Route path="/sign-up/*" element={<SignUpPage />} />
+          <Route path="/waitlist" element={<WaitlistPage />} />
           <Route
             path="/dashboard"
             element={

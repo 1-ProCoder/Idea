@@ -16,13 +16,6 @@ import {
   Zap,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import {
-  SignedIn,
-  SignedOut,
-  SignInButton,
-  SignUpButton,
-} from '@clerk/clerk-react';
-
 import Logo from '../components/brand/Logo';
 import { Hero } from '../components/landing/Hero';
 import { SectionLabel } from '../components/landing/SectionLabel';
@@ -426,27 +419,18 @@ export default function HomePage(): JSX.Element {
           <Logo size={36} withWordmark withSubtitle />
         </Link>
         <div className="flex items-center gap-2">
-          <SignedOut>
-            <SignInButton mode="modal">
-              <button className="btn-organic px-3.5 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-                Sign in
-              </button>
-            </SignInButton>
-            <SignUpButton mode="modal">
-              <button className="btn-organic hidden sm:inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium bg-primary text-primary-foreground">
-                Start Free Trial
-              </button>
-            </SignUpButton>
-          </SignedOut>
-          <SignedIn>
-            <Link
-              to="/dashboard"
-              className="btn-organic px-3.5 py-2 rounded-lg text-sm font-medium bg-primary/15 text-primary ring-1 ring-primary/30 inline-flex items-center gap-1.5"
-            >
-              Open dashboard
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
-          </SignedIn>
+          <Link
+            to="/dashboard"
+            className="btn-organic hidden sm:inline-flex px-3.5 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Explore the demo
+          </Link>
+          <Link
+            to="/waitlist"
+            className="btn-organic inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium bg-primary text-primary-foreground shadow-sm shadow-primary/30 hover:bg-primary/90 transition-colors"
+          >
+            Join the waitlist
+          </Link>
         </div>
       </header>
 
@@ -752,39 +736,20 @@ export default function HomePage(): JSX.Element {
             <p className="mt-3 text-muted-foreground text-lg">
               No credit card. Set up in 2 minutes.
             </p>
-            <div className="mt-8 inline-flex items-center gap-4 flex-wrap justify-center">
-              <SignedOut>
-                <SignUpButton mode="modal">
-                  <button
-                    className="btn-organic inline-flex items-center gap-2 px-6 py-3.5 rounded-xl font-semibold text-[15px] text-primary-foreground"
-                    style={{
-                      background:
-                        'linear-gradient(120deg, hsl(var(--primary)) 0%, hsl(var(--secondary)) 100%)',
-                      boxShadow:
-                        '0 14px 38px -10px hsl(var(--primary) / 0.55), inset 0 1px 0 rgba(255,255,255,0.2)',
-                    }}
-                  >
-                    <Sparkles className="w-4 h-4" />
-                    Start Free Trial
-                    <ArrowRight className="w-4 h-4" />
-                  </button>
-                </SignUpButton>
-              </SignedOut>
-              <SignedIn>
-                <Link
-                  to="/dashboard"
-                  className="btn-organic inline-flex items-center gap-2 px-6 py-3.5 rounded-xl font-semibold text-[15px] text-primary-foreground"
-                  style={{
-                    background:
-                      'linear-gradient(120deg, hsl(var(--primary)) 0%, hsl(var(--secondary)) 100%)',
-                    boxShadow:
-                      '0 14px 38px -10px hsl(var(--primary) / 0.55), inset 0 1px 0 rgba(255,255,255,0.2)',
-                  }}
-                >
-                  Continue to dashboard
-                  <ArrowRight className="w-4 h-4" />
-                </Link>
-              </SignedIn>
+            <div className="mt-8 inline-flex items-center gap-4 flex-wrap justify-center">              <Link
+                to="/waitlist"
+                className="btn-organic inline-flex items-center gap-2 px-6 py-3.5 rounded-xl font-semibold text-[15px] text-primary-foreground"
+                style={{
+                  background:
+                    'linear-gradient(120deg, hsl(var(--primary)) 0%, hsl(var(--secondary)) 100%)',
+                  boxShadow:
+                    '0 14px 38px -10px hsl(var(--primary) / 0.55), inset 0 1px 0 rgba(255,255,255,0.2)',
+                }}
+              >
+                <Sparkles className="w-4 h-4" />
+                Join the waitlist
+                <ArrowRight className="w-4 h-4" />
+              </Link>
               <span className="text-xs text-muted-foreground inline-flex items-center gap-1">
                 <Lock className="w-3 h-3" />
                 SSL · GDPR · CCPA

@@ -34,6 +34,7 @@ import { publicRouter } from './routes/public.js';
 import { usageRouter } from './routes/usage.js';
 import { securityRouter } from './routes/security.js';
 import { notificationsRouter } from './routes/notifications.js';
+import { waitlistRouter } from './routes/waitlist.js';
 
 const PORT = Number(process.env.PORT ?? 4000);
 const WEB_ORIGIN = process.env.WEB_ORIGIN ?? 'http://localhost:5173';
@@ -78,6 +79,7 @@ app.use('/api', dashboardRouter);
 app.use('/api', usageRouter);
 app.use('/api', securityRouter);
 app.use('/api', notificationsRouter);
+app.use('/api', waitlistRouter);
 
 // 404 fallback
 app.use((_req, res) => {
@@ -179,5 +181,15 @@ app.listen(PORT, () => {
   } else {
     console.log(`[api] DATABASE_URL: configured`);
   }
+  if (!process.env.RESEND_API_KEY) {
+    console.warn(
+      `[api] ⚠️  RESEND_API_KEY is not set. POST /api/waitlist persists signups but the operator email will print to stderr instead of being delivered.`,
+    );
+  } else {
+    console.log(`[api] RESEND_API_KEY: configured`);
+  }
+  console.log(
+    `[api] WAITLIST_FORWARD_TO: ${process.env.WAITLIST_FORWARD_TO ?? 'princenauman101@gmail.com (fallback)'}`,
+  );
 });
 

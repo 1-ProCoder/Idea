@@ -56,6 +56,12 @@ enum AppointmentStatus {
   NO_SHOW
 }
 
+enum WaitlistStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
 // ─── Identity ─────────────────────────────────────────────────────────
 
 /// Identity row mirrored from Clerk. `id` is the Clerk user id
@@ -255,4 +261,28 @@ model Call {
 
   @@index([businessId, createdAt])
   @@index([businessId, isEmergency])
+}
+
+/// Public waitlist signup. Replaces the prior Clerk-backed
+/// sign-up flow. Visitors submit their email via /api/waitlist and
+/// Resend forwards it to the operator inbox configured via
+/// WAITLIST_FORWARD_TO. Storing the row gives us:
+///   - idempotency on retried submissions (email is @unique);
+///   - retry counting when Resend delivery fails;
+///   - later query/aggregate on the waitlist without re-asking the user.
+model WaitlistSignup {
+  id             String         @id @default(cuid())
+  email          String         @unique
+  // SHA-256-derived IP hash, NOT raw IP, for dedup without PII storage.
+  ipHash         String?
+  userAgent      String?
+  referer        String?
+  status         WaitlistStatus @default(PENDING)
+  sendAttempts   Int            @default(0)
+  lastSendError  String?
+  createdAt      DateTime       @default(now())
+  sentAt         DateTime?
+
+  @@index([createdAt])
+  @@index([status])
 }

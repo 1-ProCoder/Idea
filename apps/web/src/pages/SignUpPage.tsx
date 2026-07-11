@@ -1,14 +1,9 @@
-import { SignUp } from '@clerk/clerk-react';
+import { Navigate } from 'react-router-dom';
 
+/**
+ * `/sign-up` is now an alias for `/waitlist`. See SignInPage for the
+ * reasoning; both flow back to the same email-entry form.
+ */
 export default function SignUpPage() {
-  return (
-    <div className="flex justify-center items-center py-12 px-6">
-      <SignUp
-        routing="path"
-        path="/sign-up"
-        signInUrl="/sign-in"
-        afterSignUpUrl="/dashboard"
-      />
-    </div>
-  );
+  return <Navigate to="/waitlist" replace />;
 }

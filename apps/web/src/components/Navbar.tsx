@@ -1,13 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
-  SignedIn,
-  SignedOut,
-  SignInButton,
-  SignUpButton,
-  UserButton,
-} from '@clerk/clerk-react';
-import {
   Calendar,
   Command as CommandIcon,
   LayoutDashboard,
@@ -21,6 +14,7 @@ import {
 import { CommandMenu } from './ui/CommandMenu';
 import { NotificationBell } from './NotificationBell';
 import Logo from './brand/Logo';
+import { SignedIn } from '@clerk/clerk-react';
 
 type NavDef = {
   key: string;
@@ -199,65 +193,43 @@ export default function Navbar(): JSX.Element {
             <Logo size={36} withWordmark withSubtitle />
           </Link>
 
-          <SignedIn>
-            <SignedInDesktopNav activeKey={activeKey} />
-          </SignedIn>
+          <SignedInDesktopNav activeKey={activeKey} />
 
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setCommandOpen(true)}
+              aria-label="Open command menu (⌘K)"
+              className="hidden md:flex items-center gap-2 h-9 pl-2.5 pr-2 rounded-lg glass-blend text-sm text-muted-foreground hover:text-foreground transition-colors min-w-[180px] lg:min-w-[220px]"
+            >
+              <Search className="w-3.5 h-3.5" />
+              <span className="flex-1 text-left">Search...</span>
+              <kbd className="inline-flex items-center gap-0.5 text-[10px] font-mono px-1.5 py-0.5 rounded border border-white/[0.08] bg-white/[0.04]">
+                <CommandIcon className="w-2.5 h-2.5" />K
+              </kbd>
+            </button>
+            <button
+              type="button"
+              onClick={() => setCommandOpen(true)}
+              aria-label="Open command menu (⌘K)"
+              className="md:hidden w-9 h-9 rounded-lg glass-blend flex items-center justify-center text-muted-foreground hover:text-foreground"
+            >
+              <Search className="w-4 h-4" />
+            </button>
             <SignedIn>
-              <button
-                type="button"
-                onClick={() => setCommandOpen(true)}
-                aria-label="Open command menu (⌘K)"
-                className="hidden md:flex items-center gap-2 h-9 pl-2.5 pr-2 rounded-lg glass-blend text-sm text-muted-foreground hover:text-foreground transition-colors min-w-[180px] lg:min-w-[220px]"
-              >
-                <Search className="w-3.5 h-3.5" />
-                <span className="flex-1 text-left">Search...</span>
-                <kbd className="inline-flex items-center gap-0.5 text-[10px] font-mono px-1.5 py-0.5 rounded border border-white/[0.08] bg-white/[0.04]">
-                  <CommandIcon className="w-2.5 h-2.5" />K
-                </kbd>
-              </button>
-              <button
-                type="button"
-                onClick={() => setCommandOpen(true)}
-                aria-label="Open command menu (⌘K)"
-                className="md:hidden w-9 h-9 rounded-lg glass-blend flex items-center justify-center text-muted-foreground hover:text-foreground"
-              >
-                <Search className="w-4 h-4" />
-              </button>
               <NotificationBell />
             </SignedIn>
-
-            <SignedOut>
-              <SignInButton mode="modal">
-                <button className="btn-organic px-3.5 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-                  Sign in
-                </button>
-              </SignInButton>
-              <SignUpButton mode="modal">
-                <button className="btn-organic px-4 py-2 rounded-lg text-sm font-medium bg-primary text-primary-foreground shadow-sm shadow-primary/30">
-                  Start Free Trial
-                </button>
-              </SignUpButton>
-            </SignedOut>
-            <SignedIn>
-              <UserButton
-                afterSignOutUrl="/"
-                appearance={{
-                  elements: {
-                    avatarBox:
-                      'w-8 h-8 ring-2 ring-primary/40 hover:ring-primary/60 transition-all',
-                  },
-                }}
-              />
-            </SignedIn>
+            <Link
+              to="/waitlist"
+              className="btn-organic px-3.5 py-2 rounded-lg text-sm font-medium bg-primary text-primary-foreground shadow-sm shadow-primary/30 hover:bg-primary/90 transition-colors"
+            >
+              Join waitlist
+            </Link>
           </div>
         </div>
       </header>
 
-      <SignedIn>
-        <SignedInMobileTabBar activeKey={activeKey} />
-      </SignedIn>
+      <SignedInMobileTabBar activeKey={activeKey} />
 
       <CommandMenu open={commandOpen} onClose={() => setCommandOpen(false)} />
     </>
