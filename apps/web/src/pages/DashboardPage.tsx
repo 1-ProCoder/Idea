@@ -327,16 +327,34 @@ export default function DashboardPage(): JSX.Element {
         <EmptyState
           variant="spotlight"
           icon={Sparkles}
-          title="Welcome — no activity yet"
-          description="Your AI receptionist will log calls here as customers reach out. Add your first customer to start tracking jobs and technicians."
+          title={
+            isSignedIn === false
+              ? 'Welcome to the demo'
+              : 'Welcome — no activity yet'
+          }
+          description={
+            isSignedIn === false
+              ? 'This demo business is empty. To see a populated demo, ask the operator to seed it with example customers and jobs — or sign up and start tracking your own.'
+              : "Your AI receptionist will log calls here as customers reach out. Add your first customer to start tracking jobs and technicians."
+          }
           action={
-            <a
-              href="/customers"
-              className="btn-organic inline-flex items-center gap-2 px-5 py-2.5 rounded-md font-medium bg-primary text-primary-foreground shadow-lg shadow-primary/30"
-            >
-              <Plus className="w-4 h-4" />
-              Add your first customer
-            </a>
+            isSignedIn === false ? (
+              <Link
+                to="/waitlist"
+                className="btn-organic inline-flex items-center gap-2 px-5 py-2.5 rounded-md font-medium bg-primary text-primary-foreground shadow-lg shadow-primary/30"
+              >
+                Join the waitlist
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            ) : (
+              <a
+                href="/customers"
+                className="btn-organic inline-flex items-center gap-2 px-5 py-2.5 rounded-md font-medium bg-primary text-primary-foreground shadow-lg shadow-primary/30"
+              >
+                <Plus className="w-4 h-4" />
+                Add your first customer
+              </a>
+            )
           }
         />
       ) : (
@@ -540,13 +558,23 @@ export default function DashboardPage(): JSX.Element {
                   </p>
                 </div>
               </div>
-              <a
-                href="/technicians"
-                className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:text-primary/80 transition-colors"
-              >
-                Manage team
-                <ChevronRight className="w-3 h-3" />
-              </a>
+              {isSignedIn === false ? (
+                <Link
+                  to="/waitlist"
+                  className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:text-primary/80 transition-colors"
+                >
+                  Sign in to manage your own data
+                  <ChevronRight className="w-3 h-3" />
+                </Link>
+              ) : (
+                <a
+                  href="/technicians"
+                  className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:text-primary/80 transition-colors"
+                >
+                  Manage team
+                  <ChevronRight className="w-3 h-3" />
+                </a>
+              )}
             </div>
           </section>
         </>
