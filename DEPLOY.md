@@ -64,7 +64,7 @@ Have these three values ready from your Clerk dashboard (User & Authentication �
 
 2.1. Sign in to Vercel → **Add New** → **Project** → import `1-ProCoder/Idea`.
 
-2.2. **Root Directory**: leave as `.` (repo root). Vercel reads `vercel.json` for build settings.
+2.2. **Root Directory**: leave as `.` (repo root). Vercel reads `vercel.json` for build settings. **Do not change this to `apps/web/`.** The `buildCommand` starts with `npm install`, which must run at the repo root to resolve the workspace packages (`@flowfix/shared`, etc.). If Vercel's Root Directory is `apps/web/`, the install only sees `apps/web/`'s deps and the build fails with `Cannot find module '@flowfix/shared'`.
 
 2.3. **Framework Preset**: choose **Other**. The `framework: null` field in `vercel.json` disables Vite auto-detection — we drive builds explicitly.
 
