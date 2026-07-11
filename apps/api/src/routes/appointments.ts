@@ -43,6 +43,9 @@ const ListQuerySchema = z.object({
   workerId: z.string().optional(),
   status: AppointmentStatusEnum.optional(),
   limit: z.coerce.number().int().min(1).max(500).default(200),
+  // Optional case-insensitive text query against `notes`. Powers the
+  // unified list search bar. Bounded to match existing route style.
+  q: z.string().max(120).optional(),
 });
 
 type Appointment = Awaited<ReturnType<typeof prisma.appointment.findFirst>>;
@@ -92,6 +95,9 @@ appointmentsRouter.get(
           : {}),
         ...(params.workerId ? { workerId: params.workerId } : {}),
         ...(params.status ? { status: params.status } : {}),
+        ...(params.q
+          ? { notes: { contains: params.q, mode: 'insensitive' as const } }
+          : {}),
       },
       orderBy: { start: 'asc' },
       take: params.limit,

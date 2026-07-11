@@ -1,0 +1,1 @@
+C:/Users/Princ/OneDrive/Desktop/Idea/node_modules/@embedded-postgres/windows-x64/native/bin/postgres.exe "-D" "C:\Users\Princ\OneDrive\Desktop\Idea\apps\api\.pg-data" "-p" "5432"

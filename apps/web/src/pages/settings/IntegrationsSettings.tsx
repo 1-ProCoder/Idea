@@ -1,136 +1,198 @@
-import { Phone, KeyRound, Calendar, CreditCard, BookOpen, Zap } from 'lucide-react';
+import { useUser } from '@clerk/clerk-react';
+import {
+  Calendar,
+  CheckCircle2,
+  CircleDot,
+  CreditCard,
+  Phone,
+  Plug,
+  Wallet,
+  Zap,
+  type LucideIcon,
+} from 'lucide-react';
+import type { JSX } from 'react';
 
 import { PageHeader } from '../../components/layout/PageHeader';
 import { SettingsCard } from '../../components/settings/SettingsPrimitives';
-import type { LucideIcon } from 'lucide-react';
 
 type Integration = {
-  id: string;
+  key: string;
   name: string;
   description: string;
   icon: LucideIcon;
-  status: 'Connected' | 'Available';
-  category: 'Telephony' | 'Identity' | 'Calendar' | 'Payments' | 'Accounting' | 'Automation';
+  status: 'connected' | 'available';
+  badge?: string;
 };
 
 const INTEGRATIONS: Integration[] = [
   {
-    id: 'twilio',
+    key: 'twilio',
     name: 'Twilio',
-    description: 'Powers inbound + outbound calls, SMS notifications.',
+    description:
+      'Powers your AI-receptionist phone forwarding and outbound SMS escalations.',
     icon: Phone,
-    status: 'Connected',
-    category: 'Telephony',
+    status: 'available',
+    badge: 'Phone',
   },
   {
-    id: 'clerk',
+    key: 'clerk',
     name: 'Clerk',
-    description: 'Authentication, user management, sessions.',
-    icon: KeyRound,
-    status: 'Connected',
-    category: 'Identity',
+    description:
+      'Authentication and identity. You signed in with this — it just works.',
+    icon: CircleDot,
+    status: 'connected',
+    badge: 'Identity',
   },
   {
-    id: 'google-calendar',
+    key: 'google-calendar',
     name: 'Google Calendar',
-    description: 'Two-way sync of jobs and driver schedules.',
+    description:
+      'Two-way sync so jobs booked via the AI land directly in your team calendar.',
     icon: Calendar,
-    status: 'Available',
-    category: 'Calendar',
+    status: 'available',
+    badge: 'Calendar',
   },
   {
-    id: 'stripe',
+    key: 'stripe',
     name: 'Stripe',
-    description: 'Invoices, payments, payout reports.',
+    description:
+      'Tap-to-pay invoices and card-on-file for repeat customers.',
     icon: CreditCard,
-    status: 'Available',
-    category: 'Payments',
+    status: 'available',
+    badge: 'Payments',
   },
   {
-    id: 'quickbooks',
+    key: 'quickbooks',
     name: 'QuickBooks',
-    description: 'Daily journal of completed jobs, taxes, expenses.',
-    icon: BookOpen,
-    status: 'Available',
-    category: 'Accounting',
+    description:
+      'Daily export of paid invoices and per-job expenses into your books.',
+    icon: Wallet,
+    status: 'available',
+    badge: 'Accounting',
   },
   {
-    id: 'zapier',
+    key: 'zapier',
     name: 'Zapier',
-    description: '5,000+ apps via webhook triggers and actions.',
+    description:
+      'Pipe FlowFix events into the 6,000+ apps you already use.',
     icon: Zap,
-    status: 'Available',
-    category: 'Automation',
+    status: 'available',
+    badge: 'Automation',
   },
 ];
 
 export default function IntegrationsSettings(): JSX.Element {
+  const { isLoaded, user } = useUser();
+  const isSignedIn = isLoaded && !!user;
+
   return (
     <div className="space-y-6">
       <PageHeader
         eyebrow="Settings · Integrations"
         title="Integrations"
-        subtitle="Connect the rest of your stack. Two connected · four ready to add."
+        subtitle="Hook FlowFix AI into the tools your business already runs on."
       />
 
       <SettingsCard
-        title="All integrations"
-        description="Click Connect to OAuth-install. Disconnect stops the sync but keeps the history."
+        title="Connected services"
+        description="Tap a card to manage each integration. We never share your data without explicit signing."
       >
-        <div className="space-y-2">
-          {INTEGRATIONS.map((i) => {
-            const Icon = i.icon;
-            const connected = i.status === 'Connected';
-            return (
-              <div
-                key={i.id}
-                className="flex items-center gap-3 p-3 rounded-xl glass-card hover:bg-white/[0.06] transition-colors"
-              >
-                <span
-                  className={[
-                    'w-10 h-10 rounded-lg flex items-center justify-center ring-1 flex-shrink-0',
-                    connected
-                      ? 'bg-success/15 text-success ring-success/30'
-                      : 'bg-white/[0.04] text-muted-foreground ring-white/[0.06]',
-                  ].join(' ')}
-                >
-                  <Icon className="w-5 h-5" />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium text-foreground truncate">
-                      {i.name}
-                    </p>
-                    <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
-                      {i.category}
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted-foreground truncate">
-                    {i.description}
-                  </p>
-                </div>
-                {connected ? (
-                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-success/15 text-success ring-1 ring-success/30">
-                    <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
-                    Connected
-                  </span>
-                ) : null}
-                <button
-                  type="button"
-                  className={[
-                    'px-3 py-1.5 rounded-md text-xs font-semibold transition-colors',
-                    connected
-                      ? 'bg-white/[0.04] text-muted-foreground hover:text-foreground ring-1 ring-white/[0.06]'
-                      : 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm shadow-primary/30',
-                  ].join(' ')}
-                >
-                  {connected ? 'Manage' : 'Connect'}
-                </button>
-              </div>
-            );
-          })}
-        </div>
+        <ul className="grid sm:grid-cols-2 xl:grid-cols-3 gap-3">
+          {INTEGRATIONS.map((it) => (
+            <IntegrationCard
+              key={it.key}
+              integration={it}
+              signedIn={isSignedIn}
+            />
+          ))}
+        </ul>
+      </SettingsCard>
+
+      <SettingsCard
+        title="Notes"
+        description="A few ground rules while the Connect flows are stubbed."
+      >
+        <p className="text-sm text-muted-foreground leading-relaxed">
+          Clerk is wired end-to-end &mdash; you authenticated with it. The other
+          services have a UI pre-flight but the underlying OAuth exchange ships
+          once those vendors&apos; partner agreements are finalised. Connect
+          buttons on those cards will short-circuit to a notify-me flow until
+          then.
+        </p>
       </SettingsCard>
     </div>
+  );
+}
+
+function IntegrationCard({
+  integration,
+  signedIn,
+}: {
+  integration: Integration;
+  signedIn: boolean;
+}): JSX.Element {
+  const Icon = integration.icon;
+  const connected = integration.status === 'connected' || (integration.key === 'clerk' && signedIn);
+  return (
+    <li className="glass-card rounded-2xl p-5 flex flex-col gap-4 hover:bg-white/[0.06] transition-colors">
+      <div className="flex items-start gap-3">
+        <span
+          className="w-10 h-10 rounded-xl bg-primary/15 text-primary ring-1 ring-primary/30 flex items-center justify-center flex-shrink-0"
+          aria-hidden
+        >
+          <Icon className="w-5 h-5" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="text-sm font-semibold text-foreground truncate">
+              {integration.name}
+            </p>
+            {integration.badge && (
+              <span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground px-1.5 py-0.5 rounded bg-white/[0.04] ring-1 ring-white/[0.06]">
+                {integration.badge}
+              </span>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+            {integration.description}
+          </p>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between gap-2 pt-1 border-t border-white/[0.06]">
+        <span
+          className={[
+            'inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-semibold ring-1',
+            connected
+              ? 'bg-success/15 text-success ring-success/30'
+              : 'bg-muted text-muted-foreground ring-white/[0.08]',
+          ].join(' ')}
+        >
+          {connected ? (
+            <>
+              <CheckCircle2 className="w-3 h-3" />
+              Connected
+            </>
+          ) : (
+            <>
+              <Plug className="w-3 h-3" />
+              Not connected
+            </>
+          )}
+        </span>
+        <button
+          type="button"
+          disabled={connected}
+          className={[
+            'btn-organic px-3 py-1.5 rounded-md text-xs font-semibold transition-colors',
+            connected
+              ? 'bg-muted text-muted-foreground cursor-not-allowed'
+              : 'bg-primary text-primary-foreground hover:bg-primary/90',
+          ].join(' ')}
+        >
+          {connected ? 'Manage' : 'Connect'}
+        </button>
+      </div>
+    </li>
   );
 }

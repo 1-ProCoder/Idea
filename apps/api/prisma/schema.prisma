@@ -10,8 +10,13 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  // Optional direct (non-pooled) connection used by Prisma migrate
+  // commands (`prisma db push`, `prisma migrate`). Set this in your
+  // env to enable Supabase migrations; if unset Prisma falls back to
+  // `url` for both runtime and migrations.
+  directUrl = env("DIRECT_URL")
 }
 
 // ─── Enums ────────────────────────────────────────────────────────────

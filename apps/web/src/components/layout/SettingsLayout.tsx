@@ -47,7 +47,6 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
       'Invite members, assign roles, set permissions, view activity.',
     icon: Users,
     status: 'Live',
-    count: '3 members',
     accent: 'primary',
   },
   {
@@ -74,8 +73,7 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
     description:
       'Twilio, Clerk, Google Calendar, Stripe, QuickBooks, Zapier.',
     icon: Plug,
-    status: 'Setup',
-    count: '2 of 6 connected',
+    status: 'Live',
     accent: 'warning',
   },
   {

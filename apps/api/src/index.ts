@@ -1,5 +1,21 @@
-import 'dotenv/config';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { config as loadEnv } from 'dotenv';
 import express, { type ErrorRequestHandler } from 'express';
+
+// `import 'dotenv/config'` reads .env from process.cwd(), but our
+// `start-dev.sh` launches the api from the monorepo root, so bare
+// dotenv was reading the wrong directory and CLERK_SECRET_KEY came
+// back undefined. Resolve .env relative to THIS source file so the
+// api picks up apps/api/.env regardless of cwd. Works in `tsx watch`
+// (resolves to apps/api/src/) and in `node dist/index.js` (resolves
+// to apps/api/dist/, which `../.env` climbs back to apps/api/.env).
+loadEnv({
+  path: path.resolve(
+    path.dirname(fileURLToPath(import.meta.url)),
+    '../.env',
+  ),
+});
 import cors from 'cors';
 import { clerkMiddleware } from '@clerk/express';
 import { ZodError } from 'zod';
@@ -14,6 +30,9 @@ import { callsRouter } from './routes/calls.js';
 import { appointmentsRouter } from './routes/appointments.js';
 import { businessRouter } from './routes/business.js';
 import { dashboardRouter } from './routes/dashboard.js';
+import { publicRouter } from './routes/public.js';
+import { usageRouter } from './routes/usage.js';
+import { securityRouter } from './routes/security.js';
 
 const PORT = Number(process.env.PORT ?? 4000);
 const WEB_ORIGIN = process.env.WEB_ORIGIN ?? 'http://localhost:5173';
@@ -37,6 +56,12 @@ app.get('/api/health', (_req, res) => {
 // raw body survives intact for Svix signature verification.
 app.use('/webhooks', webhookRouter);
 
+// Public marketing-site showcase endpoint — used by the home page's
+// `<SignedOut>` "see FlowFix in action" block. Unauthenticated by
+// design; returns scrubbed/masked PII only. Mounted BEFORE
+// `requireAuth()` so the no-token path resolves cleanly.
+app.use('/api', publicRouter);
+
 app.use(clerkMiddleware());
 app.use(express.json());
 
@@ -49,6 +74,8 @@ app.use('/api', callsRouter);
 app.use('/api', appointmentsRouter);
 app.use('/api', businessRouter);
 app.use('/api', dashboardRouter);
+app.use('/api', usageRouter);
+app.use('/api', securityRouter);
 
 // 404 fallback
 app.use((_req, res) => {
@@ -84,19 +111,50 @@ const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
     }
   }
 
-  // Prisma init-time failures (DB unreachable, bad URL, etc.) → 503 with
-  // a loud, actionable message instead of a generic 500. This lets the
-  // frontend render a 'database unavailable' state instead of crashing.
+  // Prisma init-time failures (DB unreachable, bad URL, ECONNREFUSED,
+  // ENOTFOUND, EAI_AGAIN) → 503 database_unavailable so the dashboard
+  // correctly renders the "database cannot be reached" EmptyState
+  // instead of falling through to a generic 500 internal_error. Uses
+  // duck-typing + a stringified regex rather than
+  // `err instanceof Prisma.PrismaClient...` because in workspaces with
+  // hoisted dependencies, the runtime error instance may originate
+  // from a different copy of @prisma/client than the one imported
+  // here, and `instanceof` checks can fail across module realms.
+  const errStr = err instanceof Error ? err.message : String(err);
+  const errCtorName =
+    typeof err === 'object' && err !== null && 'constructor' in err
+      ? (err as { constructor: { name?: string } }).constructor?.name ?? ''
+      : '';
   if (
-    err instanceof Prisma.PrismaClientInitializationError ||
-    err instanceof Prisma.PrismaClientRustPanicError ||
-    (err instanceof Error &&
-      /Can't reach database server|prisma|database/i.test(err.message))
+    errCtorName.includes('Prisma') ||
+    /Can't reach database server|connection refused|ENOTFOUND|EAI_AGAIN|ECONNREFUSED|prisma|database/i.test(errStr)
   ) {
     res.status(503).json({
       error: 'database_unavailable',
       message:
         'The database cannot be reached. Check apps/api/.env DATABASE_URL and confirm a Postgres is running.',
+    });
+    return;
+  }
+
+  // Clerk *misconfiguration* (missing publishable / secret / front URL)
+  // → 503 backend_misconfigured so the dashboard can render a clean
+  // "Backend unavailable" empty state instead of leaking Clerk's raw
+  // error string into the UI. Tight regex so this branch does NOT
+  // swallow legitimate runtime errors like "Clerk: Invalid JWT" or
+  // "Clerk: Network request failed" — those fall through to the
+  // generic 500 below.
+  if (
+    err instanceof Error &&
+    /publishable key|secret key|frontend api url/i.test(err.message)
+  ) {
+    console.warn(
+      '[api] backend_misconfigured (Clerk):',
+      err.message,
+    );
+    res.status(503).json({
+      error: 'backend_misconfigured',
+      message: 'Backend authentication is misconfigured.',
     });
     return;
   }

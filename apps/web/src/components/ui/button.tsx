@@ -29,9 +29,12 @@ const sizeClasses: Record<Size, string> = {
   icon: 'h-10 w-10',
 };
 
+// `btn-organic` is the new borderless / blended hover utility (see
+// index.css). It replaces the old `transition-colors` so hovers now use
+// a soft radial-gradient expansion instead of a sudden color swap.
 const baseClasses =
-  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md font-medium ' +
-  'transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ' +
+  'btn-organic inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md font-medium ' +
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ' +
   'focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50';
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {

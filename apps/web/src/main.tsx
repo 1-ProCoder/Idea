@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ClerkProvider } from '@clerk/clerk-react';
+import { MotionConfig } from 'framer-motion';
 
 import App from './App';
 import './index.css';
@@ -118,16 +119,18 @@ if (!rootEl) throw new Error('#root element not found');
 
 createRoot(rootEl).render(
   <StrictMode>
-    {isValidClerkPublishableKey(clerkPublishableKey) ? (
-      <ClerkProvider publishableKey={clerkPublishableKey}>
+    <MotionConfig reducedMotion="user">
+      {isValidClerkPublishableKey(clerkPublishableKey) ? (
+        <ClerkProvider publishableKey={clerkPublishableKey}>
+          <Providers>
+            <App />
+          </Providers>
+        </ClerkProvider>
+      ) : (
         <Providers>
-          <App />
+          <MissingEnvScreen />
         </Providers>
-      </ClerkProvider>
-    ) : (
-      <Providers>
-        <MissingEnvScreen />
-      </Providers>
-    )}
+      )}
+    </MotionConfig>
   </StrictMode>,
 );

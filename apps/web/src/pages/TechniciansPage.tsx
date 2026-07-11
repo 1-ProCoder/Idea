@@ -5,16 +5,16 @@ import {
   Phone,
   Search,
   Sparkles,
-  Star,
   Truck,
   UserPlus,
   Users,
   Wrench,
 } from 'lucide-react';
 import { useUser } from '@clerk/clerk-react';
+import { Link } from 'react-router-dom';
 
 import { PageHeader } from '../components/layout/PageHeader';
-import { StatCard } from '../components/ui/StatCard';
+import { StatRowItem } from '../components/ui/StatCard';
 import { EmptyState } from '../components/ui/EmptyState';
 import { useAuthedFetch } from '../hooks/useAuthedFetch';
 import { useQuery } from '@tanstack/react-query';
@@ -84,47 +84,57 @@ export default function TechniciansPage(): JSX.Element {
   const activeCount = workers.filter((w) => w.active).length;
 
   return (
-    <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-8 pb-32 space-y-8">
+    <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-8 pb-32 space-y-10">
       <PageHeader
         eyebrow="Technicians"
         title="Engineers & dispatch"
         subtitle="See who's on your team. Invite engineers to start dispatching jobs."
         actions={
-          <a
-            href="/settings/team"
-            className="px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 text-sm font-medium shadow-sm shadow-primary/30 hover:shadow-primary/50 transition-all inline-flex items-center gap-2"
+          <Link
+            to="/settings/team"
+            className="btn-organic px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium shadow-sm shadow-primary/30 inline-flex items-center gap-2"
           >
             <UserPlus className="w-4 h-4" />
             Invite technician
-          </a>
+          </Link>
         }
       />
 
-      <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <StatCard
+      {/*
+        Borderless stats row, integrated directly into the page header.
+        Same pattern as the dashboard — generous horizontal negative space
+        (gap-8 / lg:gap-12) and tiny pulsing accent dots replace the old
+        4 boxy metric cards. The row has no background or border.
+      */}
+      <div
+        className="flex flex-wrap items-end gap-x-8 lg:gap-x-12 gap-y-6 -mt-2"
+        aria-label="Team stats"
+      >
+        <StatRowItem
           label="Total team"
           value={String(total)}
           icon={Users}
           accent="primary"
         />
-        <StatCard
+        <StatRowItem
           label="Active"
           value={String(activeCount)}
           icon={CheckCircle2}
           accent="success"
         />
-        <StatCard
+        <StatRowItem
           label="Admins"
           value={String(workers.filter((w) => w.role !== 'TECHNICIAN').length)}
           icon={Briefcase}
+          accent="accent"
         />
-        <StatCard
+        <StatRowItem
           label="Technicians"
           value={String(workers.filter((w) => w.role === 'TECHNICIAN').length)}
           icon={Truck}
-          accent="accent"
+          accent="warning"
         />
-      </section>
+      </div>
 
       <section className="space-y-4">
         <div className="flex items-center gap-2">
@@ -133,8 +143,8 @@ export default function TechniciansPage(): JSX.Element {
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search technicians\u2026"
-              className="w-full h-9 pl-8 pr-3 rounded-lg glass-card text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/40"
+              placeholder="Search technicians..."
+              className="w-full h-9 pl-8 pr-3 rounded-lg glass-blend text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/40"
             />
           </div>
         </div>
@@ -181,17 +191,18 @@ export default function TechniciansPage(): JSX.Element {
           !workersQuery.isPending &&
           !workersQuery.isError && (
             <EmptyState
+              variant="spotlight"
               icon={Users}
               title="No technicians yet"
               description="Invite your first engineer to start dispatching jobs. They'll receive a magic-link sign-up."
               action={
-                <a
-                  href="/settings/team"
-                  className="px-5 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium inline-flex items-center gap-2"
+                <Link
+                  to="/settings/team"
+                  className="btn-organic px-5 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium inline-flex items-center gap-2"
                 >
                   <UserPlus className="w-4 h-4" />
                   Invite technician
-                </a>
+                </Link>
               }
             />
           )}
@@ -271,7 +282,7 @@ function WorkerCard({ worker }: { worker: WorkerDto }): JSX.Element {
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
               Phone
             </p>
-            <p className="text-sm text-muted-foreground mt-0.5">\u2014</p>
+            <p className="text-sm text-muted-foreground mt-0.5">—</p>
           </div>
         )}
         {worker.email ? (
@@ -288,19 +299,19 @@ function WorkerCard({ worker }: { worker: WorkerDto }): JSX.Element {
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
               Email
             </p>
-            <p className="text-sm text-muted-foreground mt-0.5">\u2014</p>
+            <p className="text-sm text-muted-foreground mt-0.5">—</p>
           </div>
         )}
       </div>
 
       <div className="mt-3 flex items-center gap-2">
-        <button className="flex-1 h-8 rounded-lg bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-colors">
+        <button className="btn-organic flex-1 h-8 rounded-lg bg-primary text-primary-foreground text-xs font-semibold">
           Assign
         </button>
         {worker.phone && (
           <a
             href={`tel:${worker.phone}`}
-            className="h-8 w-8 rounded-lg glass-card flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+            className="btn-organic h-8 w-8 rounded-lg glass-blend flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
             aria-label={`Call ${worker.name}`}
           >
             <Phone className="w-3.5 h-3.5" />

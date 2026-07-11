@@ -22,6 +22,7 @@ import {
   type CallListResponse,
 } from '../lib/api-calls';
 import { useUser } from '@clerk/clerk-react';
+import { Link } from 'react-router-dom';
 
 function formatDuration(seconds: number | null): string {
   if (seconds == null) return '\u2014';
@@ -222,13 +223,13 @@ export default function CallsPage(): JSX.Element {
                 title="No calls yet"
                 description="Calls answered by your AI receptionist will appear here. Forward your business number to FlowFix to start receiving them."
                 action={
-                  <a
-                    href="/settings/ai-receptionist"
+                  <Link
+                    to="/settings/ai-receptionist"
                     className="inline-flex items-center gap-2 px-5 py-2.5 rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shadow-lg shadow-primary/30"
                   >
                     <PhoneCall className="w-4 h-4" />
                     Set up AI receptionist
-                  </a>
+                  </Link>
                 }
               />
             )}

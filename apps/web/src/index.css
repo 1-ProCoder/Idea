@@ -58,11 +58,19 @@ html {
 }
 
 body {
-  background-color: hsl(var(--background));
+  /* Transparent so the fixed <CanvasBackdrop/> (z-index -10) shows through.
+     The backdrop's own deep-obsidian blob color is the perceived background. */
+  background-color: transparent;
   color: hsl(var(--foreground));
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   font-feature-settings: 'cv11', 'ss01', 'ss03';
+  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Clash Display', 'Inter', sans-serif;
+  letter-spacing: -0.02em;
 }
 
 @layer utilities {
@@ -74,7 +82,293 @@ body {
     background-color: rgba(255, 255, 255, 0.06);
     border: 1px solid rgba(255, 255, 255, 0.1);
   }
-  /* Reusable subtle scrollbar in dark theme */
+
+  /* Premium glassmorphism: ultra backdrop + faint aurora border layered on top. */
+  .glass-ultra {
+    background-color: rgba(255, 255, 255, 0.025);
+    backdrop-filter: blur(24px) saturate(140%);
+    -webkit-backdrop-filter: blur(24px) saturate(140%);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    box-shadow:
+      inset 0 1px 1px rgba(255, 255, 255, 0.06),
+      0 12px 40px rgba(0, 0, 0, 0.35);
+  }
+
+  /* Faint linear-gradient ring (1px) painted via mask-composite.
+     Parent must be `position: relative` and have a border-radius. */
+  .glass-aurora {
+    position: relative;
+  }
+  .glass-aurora::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    padding: 1px;
+    border-radius: inherit;
+    pointer-events: none;
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.55) 0%,
+      rgba(255, 255, 255, 0.05) 35%,
+      rgba(255, 255, 255, 0) 60%,
+      rgba(255, 255, 255, 0.2) 100%
+    );
+    -webkit-mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+            mask-composite: exclude;
+  }
+
+  /* ─── BLENDED CANVAS ARCHITECTURE ──────────────────────────────────────
+     New utilities for the "borderless glassmorphism" aesthetic. The
+     bg is fully transparent, the backdrop-filter does the visual
+     lifting, and a 1px top-and-left white highlight catches ambient
+     light. Use this on any element that should feel "fused" to the
+     canvas rather than boxed on top of it. */
+  .glass-blend {
+    background-color: transparent;
+    backdrop-filter: blur(12px) saturate(140%);
+    -webkit-backdrop-filter: blur(12px) saturate(140%);
+    box-shadow:
+      inset 1px 1px 0 rgba(255, 255, 255, 0.06),
+      inset -1px -1px 0 rgba(255, 255, 255, 0.02);
+    border: none;
+    border-radius: var(--radius);
+  }
+
+  /* ─── GLOBAL CANVAS BACKDROP ──────────────────────────────────────────
+     Fixed full-viewport layer painted behind every page. Three large
+     blurred radial blobs drift on independent 24-36s cycles (see
+     tailwind.config.js `canvas-drift-*` keyframes). The deep obsidian
+     paint on the wrapper itself is the "perceived background" — it's
+     what shows through between the blobs. */
+  .canvas-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: -10;
+    pointer-events: none;
+    background-color: hsl(220 30% 5%);
+    overflow: hidden;
+  }
+  .canvas-blob {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(120px);
+    mix-blend-mode: screen;
+    will-change: transform;
+    opacity: 0.55;
+  }
+  .canvas-blob-teal {
+    width: 60vw;
+    height: 60vw;
+    top: -15%;
+    left: -10%;
+    background: radial-gradient(
+      circle at center,
+      hsl(173 80% 45% / 0.5) 0%,
+      transparent 70%
+    );
+  }
+  .canvas-blob-purple {
+    width: 50vw;
+    height: 50vw;
+    bottom: -15%;
+    right: -10%;
+    background: radial-gradient(
+      circle at center,
+      hsl(252 95% 60% / 0.4) 0%,
+      transparent 70%
+    );
+  }
+  .canvas-blob-midnight {
+    width: 70vw;
+    height: 70vw;
+    top: 30%;
+    left: 20%;
+    background: radial-gradient(
+      circle at center,
+      hsl(217 91% 35% / 0.35) 0%,
+      transparent 70%
+    );
+  }
+
+  /* ─── ORGANIC BUTTON HOVER ────────────────────────────────────────────
+     The "glow behind the text expands softly" effect. A pseudo-element
+     radial gradient scales from 0.5 → 1.4 with a 500ms ease-out-expo
+     curve, and a soft box-shadow ring grows in tandem. Replaces the old
+     `hover:bg-primary/90` sudden color shift. */
+  .btn-organic {
+    position: relative;
+    isolation: isolate;
+    transition:
+      box-shadow 400ms cubic-bezier(0.16, 1, 0.3, 1),
+      transform 400ms cubic-bezier(0.16, 1, 0.3, 1),
+      background-color 400ms cubic-bezier(0.16, 1, 0.3, 1),
+      color 400ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .btn-organic::before {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: inherit;
+    background: radial-gradient(
+      circle at center,
+      currentColor 0%,
+      transparent 60%
+    );
+    opacity: 0;
+    transform: scale(0.5);
+    transition:
+      opacity 500ms cubic-bezier(0.16, 1, 0.3, 1),
+      transform 500ms cubic-bezier(0.16, 1, 0.3, 1);
+    z-index: -1;
+    filter: blur(10px);
+    pointer-events: none;
+  }
+  .btn-organic:hover::before {
+    opacity: 0.35;
+    transform: scale(1.4);
+  }
+  .btn-organic:hover {
+    box-shadow:
+      0 0 0 1px hsl(var(--primary) / 0.2),
+      0 14px 40px -8px hsl(var(--primary) / 0.45);
+  }
+
+  /* ─── HOW IT WORKS — TRAVELING-LIGHT PATH ────────────────────────────
+     A horizontal 1px line that spans the full row of step blocks. The
+     `::before` is the dim base line; the `::after` is a brighter
+     30%-wide highlight that slides left-to-right via the `light-travel`
+     keyframe, simulating light traveling through a circuit. The
+     container must be `position: relative`. */
+  .how-it-works-path {
+    position: relative;
+  }
+  .how-it-works-path::before {
+    content: '';
+    position: absolute;
+    /* Aligned with the step node circles. The container has `pt-10`
+       (40px padding), the node is w-5 h-5 (20px) at top-0 of its step
+       block, so the node spans 40–60px from container top, with its
+       center at 50px = 3.125rem. */
+    top: 3.125rem;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      hsl(var(--primary) / 0.18) 12%,
+      hsl(var(--primary) / 0.18) 88%,
+      transparent 100%
+    );
+    z-index: 0;
+    pointer-events: none;
+  }
+  .how-it-works-path::after {
+    content: '';
+    position: absolute;
+    top: 3.125rem;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      hsl(var(--primary) / 0.9) 50%,
+      transparent 100%
+    );
+    background-size: 30% 100%;
+    background-repeat: no-repeat;
+    z-index: 0;
+    pointer-events: none;
+    animation: light-travel 3.5s linear infinite;
+    filter: drop-shadow(0 0 6px hsl(var(--primary) / 0.6));
+  }
+  /* The step node circles are `hidden lg:flex` — below the `lg` breakpoint
+     the steps stack vertically and the line + traveling light would
+     dangle with nothing to connect. Hide them on mobile so the section
+     reads cleanly without a stray horizontal bar. */
+  @media (max-width: 1023px) {
+    .how-it-works-path::before,
+    .how-it-works-path::after {
+      display: none;
+    }
+  }
+
+  /* ─── SPOTLIGHT GLOW (used by EmptyState `spotlight` variant) ───────
+     A radial-gradient halo placed behind the icon. The base layer is a
+     soft primary-tinted glow; the `::after` adds a faster pulse on top
+     so the spotlight feels alive without being distracting. */
+  .spotlight-glow {
+    position: relative;
+    isolation: isolate;
+  }
+  .spotlight-glow::before {
+    content: '';
+    position: absolute;
+    inset: -60px;
+    border-radius: 50%;
+    background: radial-gradient(
+      circle at center,
+      hsl(var(--primary) / 0.45) 0%,
+      hsl(var(--primary) / 0.18) 35%,
+      transparent 70%
+    );
+    filter: blur(40px);
+    z-index: -1;
+    pointer-events: none;
+  }
+  .spotlight-glow::after {
+    content: '';
+    position: absolute;
+    inset: -30px;
+    border-radius: 50%;
+    background: radial-gradient(
+      circle at center,
+      hsl(var(--primary) / 0.25) 0%,
+      transparent 60%
+    );
+    filter: blur(20px);
+    z-index: -1;
+    pointer-events: none;
+    animation: glow-pulse 4.5s ease-in-out infinite;
+  }
+
+  /* Soft radial halo behind the landing Capabilities preview pane. Used
+     as a CSS class (not a Tailwind `bg-gradient-radial` arbitrary value)
+     because the `bg-gradient-radial from-... via-...` legacy utilities
+     were removed in Tailwind 3.4+, and arbitrary values don't pick up
+     CSS variables cleanly. */
+  .preview-halo {
+    background: radial-gradient(
+      circle at center,
+      hsl(var(--primary) / 0.22) 0%,
+      hsl(var(--primary) / 0.08) 45%,
+      transparent 70%
+    );
+  }
+
+  /* Tiny pulsing accent dot used by the new borderless header stat row. */
+  .stat-row-accent {
+    display: inline-block;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background-color: hsl(var(--primary));
+    box-shadow: 0 0 10px 2px hsl(var(--primary) / 0.55);
+    animation: glow-pulse 4s ease-in-out infinite;
+  }
+
+  /* Premium display-pair utility */
+  .text-display {
+    font-family: 'Clash Display', 'Inter', sans-serif;
+    letter-spacing: -0.025em;
+    font-weight: 600;
+  }
+
+  /* Subtle webkit scrollbar */
   .scrollbar-thin::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -85,5 +379,40 @@ body {
   }
   .scrollbar-thin::-webkit-scrollbar-track {
     background: transparent;
+  }
+
+  /* Marquee edge fade (transparent → opaque → transparent). */
+  .mask-fade-x {
+    -webkit-mask-image: linear-gradient(
+      to right,
+      transparent 0,
+      black 6%,
+      black 94%,
+      transparent 100%
+    );
+            mask-image: linear-gradient(
+      to right,
+      transparent 0,
+      black 6%,
+      black 94%,
+      transparent 100%
+    );
+  }
+
+  /* Waveform / scalable bar base */
+  .wave-bar {
+    transform-origin: center;
+    will-change: transform;
+  }
+}
+
+/* Respect users who opt out of motion. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

@@ -1,8 +1,9 @@
 import type { ReactNode } from 'react';
-import { Link, Route, Routes } from 'react-router-dom';
+import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { SignedIn, SignedOut, RedirectToSignIn } from '@clerk/clerk-react';
 import { ArrowLeft, Compass } from 'lucide-react';
 
+import { CanvasBackdrop } from './components/ui/CanvasBackdrop';
 import Navbar from './components/Navbar';
 import HomePage from './pages/HomePage';
 import SignInPage from './pages/SignInPage';
@@ -13,6 +14,8 @@ import CallsPage from './pages/CallsPage';
 import TechniciansPage from './pages/TechniciansPage';
 import SchedulePage from './pages/SchedulePage';
 import SettingsPage from './pages/SettingsPage';
+import ListPage from './pages/ListPage';
+import ListNewPage from './pages/ListNewPage';
 import { SettingsLayout } from './components/layout/SettingsLayout';
 
 import GeneralSettings from './pages/settings/GeneralSettings';
@@ -43,12 +46,36 @@ function Protected({ children }: { children: ReactNode }) {
 }
 
 export default function App() {
+  const location = useLocation();
+  // Hide the global app Navbar on marketing and auth screens so the
+  // homepage's own marketing header is the SOLE header for signed-out
+  // users, and Clerk's sign-in/sign-up screens stay clean. The `/`
+  // redirect for signed-in users (below) ensures they always land on
+  // a protected route where this Navbar is the sole header.
+  const isMarketingOrAuthRoute =
+    location.pathname === '/' ||
+    location.pathname.startsWith('/sign-in') ||
+    location.pathname.startsWith('/sign-up');
+
   return (
-    <div className="min-h-screen flex flex-col bg-background text-foreground">
-      <Navbar />
+    <div className="min-h-screen flex flex-col text-foreground">
+      <CanvasBackdrop />
+      {!isMarketingOrAuthRoute && <Navbar />}
       <main className="flex-1">
         <Routes>
-          <Route path="/" element={<HomePage />} />
+          <Route
+            path="/"
+            element={
+              <>
+                <SignedIn>
+                  <Navigate to="/dashboard" replace />
+                </SignedIn>
+                <SignedOut>
+                  <HomePage />
+                </SignedOut>
+              </>
+            }
+          />
           <Route path="/sign-in/*" element={<SignInPage />} />
           <Route path="/sign-up/*" element={<SignUpPage />} />
           <Route
@@ -88,6 +115,22 @@ export default function App() {
             element={
               <Protected>
                 <SettingsPage />
+              </Protected>
+            }
+          />
+          <Route
+            path="/list"
+            element={
+              <Protected>
+                <ListPage />
+              </Protected>
+            }
+          />
+          <Route
+            path="/list/new"
+            element={
+              <Protected>
+                <ListNewPage />
               </Protected>
             }
           />

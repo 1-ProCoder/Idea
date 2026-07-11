@@ -1,105 +1,213 @@
-import { useState } from 'react';
-import { Camera, Save } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useUser } from '@clerk/clerk-react';
+import { CheckCircle2, Loader2 } from 'lucide-react';
+import type { JSX } from 'react';
 
 import { PageHeader } from '../../components/layout/PageHeader';
 import {
   FieldRow,
-  Select,
   SettingsCard,
   TextInput,
 } from '../../components/settings/SettingsPrimitives';
+import { useAuthedFetch } from '../../hooks/useAuthedFetch';
+import {
+  getBusiness,
+  updateBusiness,
+  type ApiError as ApiErrorT,
+  type BusinessPatchInput,
+  type BusinessProfileDto,
+} from '../../lib/api-business';
+
+type BrandingExtras = {
+  logoUrl?: string;
+  tagline?: string;
+};
+
+function readBranding(b: BusinessProfileDto): BrandingExtras {
+  const raw = b.branding as Partial<BrandingExtras>;
+  return {
+    logoUrl: typeof raw.logoUrl === 'string' ? raw.logoUrl : '',
+    tagline: typeof raw.tagline === 'string' ? raw.tagline : '',
+  };
+}
 
 export default function CompanySettings(): JSX.Element {
-  const [dba, setDba] = useState('FlowFix Plumbing & Heating');
-  const [legal, setLegal] = useState('FlowFix Holdings LLC');
-  const [ein, setEin] = useState('83-1234567');
-  const [addr, setAddr] = useState('128 Brighton Ave, Suite 4');
-  const [serviceArea, setServiceArea] = useState('15-mile radius');
-  const [phone, setPhone] = useState('(555) 010-2200');
-  const [email, setEmail] = useState('ops@flowfix.example');
+  const { isLoaded } = useUser();
+  const fetch = useAuthedFetch();
+  const qc = useQueryClient();
+
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [address, setAddress] = useState('');
+  const [logoUrl, setLogoUrl] = useState('');
+  const [tagline, setTagline] = useState('');
+
+  const initial = useMemo(
+    () => ({ email: '', phone: '', address: '', logoUrl: '', tagline: '' }),
+    [],
+  );
+
+  const query = useQuery<BusinessProfileDto>({
+    queryKey: ['business'],
+    queryFn: () => fetch((token) => getBusiness(token)),
+    enabled: isLoaded,
+    staleTime: 60_000,
+  });
+
+  useEffect(() => {
+    if (!query.data) return;
+    setEmail(query.data.email ?? '');
+    setPhone(query.data.phone ?? '');
+    setAddress(query.data.address ?? '');
+    const br = readBranding(query.data);
+    setLogoUrl(br.logoUrl ?? '');
+    setTagline(br.tagline ?? '');
+    initial.email = query.data.email ?? '';
+    initial.phone = query.data.phone ?? '';
+    initial.address = query.data.address ?? '';
+    initial.logoUrl = br.logoUrl ?? '';
+    initial.tagline = br.tagline ?? '';
+  }, [query.data, initial]);
+
+  const mutation = useMutation({
+    mutationFn: (input: BusinessPatchInput) =>
+      fetch((token) => updateBusiness(token, input)),
+    onSuccess: (next) => {
+      qc.setQueryData(['business'], next);
+    },
+  });
+
+  const dirty =
+    email !== initial.email ||
+    phone !== initial.phone ||
+    address !== initial.address ||
+    logoUrl !== initial.logoUrl ||
+    tagline !== initial.tagline;
+
+  function save() {
+    if (!dirty || mutation.isPending) return;
+    const input: BusinessPatchInput = { email, phone, address };
+    const branding = {
+      ...(query.data?.branding ?? {}),
+      logoUrl,
+      tagline,
+    };
+    input.branding = branding;
+    mutation.mutate(input);
+  }
+
+  // Curly quotes via \u201c / \u201d inside JSX attribute strings — they
+  // don't terminate the attribute the way ASCII " would, which
+  // previously cascaded TS parse errors through the whole file.
+  const taglineHelper =
+    'The one-line \u201celevator pitch\u201d sentence used on the dashboard hero chip.';
+
+  const mutationErrorMessage = mutation.isError
+    ? ((mutation.error as unknown as ApiErrorT | null)?.message ??
+      String(mutation.error))
+    : null;
 
   return (
     <div className="space-y-6">
       <PageHeader
         eyebrow="Settings · Company"
         title="Company"
-        subtitle="Legal entity, branding, address, service area, contact information."
-        actions={
-          <button className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 shadow-sm shadow-primary/30 hover:shadow-primary/50 transition-all inline-flex items-center gap-2">
-            <Save className="w-4 h-4" />
-            Save changes
-          </button>
-        }
+        subtitle="Contact info and brand assets that ride along on every customer touchpoint."
       />
 
       <SettingsCard
-        title="Branding"
-        description="Your logo is used on the dashboard, emails, customer invoices, and SMS previews."
-        actions={
-          <button
-            type="button"
-            className="px-3 py-1.5 rounded-lg glass-card text-xs font-semibold text-foreground/90 hover:text-foreground hover:bg-white/[0.06] transition-colors inline-flex items-center gap-1.5"
-          >
-            <Camera className="w-3.5 h-3.5" />
-            Upload logo
-          </button>
-        }
+        title="Contact info"
+        description="Where customers and AI escalations reach you."
       >
-        <div className="flex items-center gap-4">
-          <span className="w-16 h-16 rounded-xl bg-gradient-to-br from-primary via-accent to-secondary shadow-lg shadow-primary/30 flex items-center justify-center text-sm font-bold text-primary-foreground">
-            FF
-          </span>
-          <div className="min-w-0">
-            <p className="text-sm font-medium text-foreground truncate">
-              flowfix-logo.png
-            </p>
-            <p className="text-xs text-muted-foreground mt-0.5">PNG · 128×128</p>
-          </div>
-        </div>
-      </SettingsCard>
-
-      <SettingsCard title="Business details">
-        <FieldRow label="Doing business as" description="Customer-facing brand.">
-          <TextInput value={dba} onChange={setDba} />
+        <FieldRow label="Email" htmlFor="company-email">
+          <TextInput
+            id="company-email"
+            type="email"
+            value={email}
+            onChange={setEmail}
+            placeholder="dispatch@vossplumbing.com"
+          />
         </FieldRow>
-        <FieldRow label="Legal entity" description="Required for invoices.">
-          <TextInput value={legal} onChange={setLegal} />
+        <FieldRow label="Phone" htmlFor="company-phone">
+          <TextInput
+            id="company-phone"
+            type="tel"
+            value={phone}
+            onChange={setPhone}
+            placeholder="+1 (555) 123-4567"
+          />
         </FieldRow>
         <FieldRow
-          label="Tax ID (EIN)"
-          description="Used on invoices. Stored encrypted at rest."
+          label="Service address"
+          htmlFor="company-address"
+          description="Default for invoices. Per-job addresses stay on the job."
         >
-          <TextInput value={ein} onChange={setEin} />
-        </FieldRow>
-      </SettingsCard>
-
-      <SettingsCard title="Address & service area">
-        <FieldRow label="Business address">
-          <TextInput value={addr} onChange={setAddr} />
-        </FieldRow>
-        <FieldRow label="Service area" description="Auto-routed to your techs.">
-          <Select
-            value={serviceArea}
-            onChange={setServiceArea}
-            options={[
-              { value: '5-mile radius', label: '5-mile radius' },
-              { value: '10-mile radius', label: '10-mile radius' },
-              { value: '15-mile radius', label: '15-mile radius' },
-              { value: '25-mile radius', label: '25-mile radius' },
-              { value: 'statewide', label: 'Statewide' },
-            ]}
+          <TextInput
+            id="company-address"
+            value={address}
+            onChange={setAddress}
+            placeholder="742 Evergreen Terrace, Springfield"
           />
         </FieldRow>
       </SettingsCard>
 
-      <SettingsCard title="Public contact">
-        <FieldRow label="Public phone">
-          <TextInput value={phone} onChange={setPhone} type="tel" />
+      <SettingsCard
+        title="Brand assets"
+        description="Logo and tagline render on invoice headers, the dashboard, and the AI greeting scaffold."
+      >
+        <FieldRow
+          label="Logo URL"
+          htmlFor="company-logo"
+          description="HTTPS-hosted image. We render it at 128 by 128 on invoices."
+        >
+          <TextInput
+            id="company-logo"
+            type="url"
+            value={logoUrl}
+            onChange={setLogoUrl}
+            placeholder="https://assets.vossplumbing.com/logo.png"
+          />
         </FieldRow>
-        <FieldRow label="Public email">
-          <TextInput value={email} onChange={setEmail} type="email" />
+        <FieldRow
+          label="Tagline"
+          htmlFor="company-tagline"
+          description={taglineHelper}
+        >
+          <TextInput
+            id="company-tagline"
+            value={tagline}
+            onChange={setTagline}
+            placeholder="Honest work, since 1973."
+          />
         </FieldRow>
       </SettingsCard>
+
+      <div className="flex items-center justify-end gap-3 flex-wrap pt-1">
+        {mutation.isSuccess && (
+          <span className="inline-flex items-center gap-1.5 text-success text-xs font-medium">
+            <CheckCircle2 className="w-3.5 h-3.5" />
+            Saved
+          </span>
+        )}
+        {mutationErrorMessage && (
+          <span className="text-danger text-xs">{mutationErrorMessage}</span>
+        )}
+        <button
+          type="button"
+          onClick={save}
+          disabled={!dirty || mutation.isPending || query.isPending}
+          className="btn-organic inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-semibold shadow-sm shadow-primary/30 disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          {mutation.isPending ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" /> Saving…
+            </>
+          ) : (
+            'Save changes'
+          )}
+        </button>
+      </div>
     </div>
   );
 }

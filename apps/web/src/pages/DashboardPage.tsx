@@ -15,11 +15,11 @@ import {
 } from 'lucide-react';
 
 import { PageHeader } from '../components/layout/PageHeader';
-import { StatCard } from '../components/ui/StatCard';
+import { StatRowItem } from '../components/ui/StatCard';
 import { Sparkline } from '../components/ui/Sparkline';
 import { EmptyState } from '../components/ui/EmptyState';
 import { useAuthedFetch } from '../hooks/useAuthedFetch';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   getDashboardStats,
   type DashboardStats,
@@ -172,6 +172,26 @@ export default function DashboardPage(): JSX.Element {
     staleTime: 30_000,
   });
 
+  const queryClient = useQueryClient();
+
+  // Pull the most informative error message from any of the queries —
+  // the API now returns structured `error` codes (backend_misconfigured /
+  // database_unavailable), but they get embedded into the throw-string
+  // by useAuthedFetch, so we substring-match on the message.
+  const backendErrorMsg = (
+    (meQuery.error as Error | null)?.message ??
+    (statsQuery.error as Error | null)?.message ??
+    (callsQuery.error as Error | null)?.message ??
+    ''
+  ).toLowerCase();
+
+  const errorKind: 'auth' | 'database' | 'other' =
+    backendErrorMsg.includes('backend_misconfigured')
+      ? 'auth'
+      : backendErrorMsg.includes('database_unavailable')
+        ? 'database'
+        : 'other';
+
   const firstName = useMemo(
     () => user?.firstName ?? user?.username ?? 'there',
     [user],
@@ -190,9 +210,12 @@ export default function DashboardPage(): JSX.Element {
   const completionRate = stats?.totals.completionRate ?? 0;
   const activeTechnicians = stats?.totals.activeTechnicians ?? 0;
 
+  const isBackendError =
+    meQuery.isError || statsQuery.isError || callsQuery.isError;
+
   const isAllEmpty =
     !statsQuery.isPending &&
-    !statsQuery.isError &&
+    !isBackendError &&
     totalCalls === 0 &&
     jobsToday === 0 &&
     emergencyJobs === 0 &&
@@ -201,18 +224,18 @@ export default function DashboardPage(): JSX.Element {
     calls.length === 0;
 
   return (
-    <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-8 pb-32 space-y-8">
+    <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-8 pb-32 space-y-10">
       <PageHeader
         eyebrow="Today"
         title={`${timeOfDayGreeting()}, ${firstName} 👋`}
         subtitle="Here's what's happening in your business today."
         actions={
           <>
-            <button className="px-4 py-2 rounded-lg glass-card text-sm font-medium text-foreground/90 hover:text-foreground hover:bg-white/[0.06] transition-colors inline-flex items-center gap-2">
+            <button className="btn-organic px-4 py-2 rounded-lg glass-blend text-sm font-medium text-foreground/90 hover:text-foreground inline-flex items-center gap-2">
               <Plus className="w-4 h-4" />
               New Job
             </button>
-            <button className="px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 text-sm font-medium shadow-sm shadow-primary/30 hover:shadow-primary/50 transition-all inline-flex items-center gap-2">
+            <button className="btn-organic px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium shadow-sm shadow-primary/30 inline-flex items-center gap-2">
               <Plus className="w-4 h-4" />
               Add Customer
             </button>
@@ -220,57 +243,87 @@ export default function DashboardPage(): JSX.Element {
         }
       />
 
-      {isAllEmpty && (
+      {/*
+        Borderless stats row, integrated directly into the page header.
+        Generous horizontal negative space (gap-8 / lg:gap-12) and tiny
+        pulsing accent dots replace the old 4 boxy metric cards. The row
+        has no background or border — the canvas shows through.
+      */}
+      <motion.div
+        {...fadeUp}
+        transition={{ duration: 0.4 }}
+        className="flex flex-wrap items-end gap-x-8 lg:gap-x-12 gap-y-6 -mt-2"
+        aria-label="Today stats"
+      >
+        <StatRowItem
+          label="Calls (7d)"
+          value={String(totalCalls)}
+          icon={PhoneCall}
+          accent="primary"
+        />
+        <StatRowItem
+          label="Jobs today"
+          value={String(jobsToday)}
+          icon={Briefcase}
+          accent="success"
+        />
+        <StatRowItem
+          label="Emergency jobs"
+          value={String(emergencyJobs)}
+          icon={Zap}
+          accent="warning"
+        />
+        <StatRowItem
+          label="Completion"
+          value={`${completionRate}%`}
+          icon={Gauge}
+          accent="accent"
+        />
+      </motion.div>
+
+      {isBackendError ? (
         <EmptyState
+          variant="spotlight"
+          icon={Wrench}
+          title="Dashboard unavailable"
+          description={
+            errorKind === 'auth'
+              ? 'Backend authentication is misconfigured. Set CLERK_SECRET_KEY in apps/api/.env (matching VITE_CLERK_PUBLISHABLE_KEY on the web) and restart the API.'
+              : errorKind === 'database'
+                ? 'The database cannot be reached. Check DATABASE_URL in apps/api/.env and confirm Postgres is running.'
+                : "We couldn't connect to the backend service. It may be unreachable or down. If this persists, check the API process."
+          }
+          action={
+            <button
+              type="button"
+              onClick={() => {
+                void queryClient.invalidateQueries();
+              }}
+              className="btn-organic inline-flex items-center gap-2 px-5 py-2.5 rounded-md font-medium bg-primary text-primary-foreground shadow-lg shadow-primary/30"
+            >
+              <Wrench className="w-4 h-4" />
+              Retry
+            </button>
+          }
+        />
+      ) : isAllEmpty ? (
+        <EmptyState
+          variant="spotlight"
           icon={Sparkles}
           title="Welcome — no activity yet"
           description="Your AI receptionist will log calls here as customers reach out. Add your first customer to start tracking jobs and technicians."
           action={
             <a
               href="/customers"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shadow-lg shadow-primary/30"
+              className="btn-organic inline-flex items-center gap-2 px-5 py-2.5 rounded-md font-medium bg-primary text-primary-foreground shadow-lg shadow-primary/30"
             >
               <Plus className="w-4 h-4" />
               Add your first customer
             </a>
           }
         />
-      )}
-
-      {!isAllEmpty && (
+      ) : (
         <>
-          {/* 4-card stat row (Revenue dropped: not part of the stats API) */}
-          <motion.section
-            {...fadeUp}
-            transition={{ duration: 0.4 }}
-            className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4"
-            aria-label="Today stats"
-          >
-            <StatCard
-              label="Calls (7d)"
-              value={String(totalCalls)}
-              icon={PhoneCall}
-              sparkline={spark}
-            />
-            <StatCard
-              label="Jobs today"
-              value={String(jobsToday)}
-              icon={Briefcase}
-              accent="success"
-            />
-            <StatCard
-              label="Emergency jobs"
-              value={String(emergencyJobs)}
-              icon={Zap}
-              accent="warning"
-            />
-            <StatCard
-              label="Completion"
-              value={`${completionRate}%`}
-              icon={Gauge}
-            />
-          </motion.section>
-
           {/* 2nd row — recent calls + today's schedule + recent jobs */}
           <section className="grid lg:grid-cols-3 gap-4">
             <Panel title="Recent calls" actionLabel="View all" icon={PhoneCall}>
@@ -482,34 +535,27 @@ export default function DashboardPage(): JSX.Element {
         </>
       )}
 
-      {statsQuery.isError && (
-        <div
-          role="alert"
-          className="rounded-md border border-destructive/40 bg-destructive/10 p-4"
-        >
-          <p className="font-medium text-destructive">
-            Couldn't load dashboard stats
-          </p>
-          <p className="text-sm text-destructive/80 mt-1">
-            {(() => {
-              const err = statsQuery.error as { message?: string };
-              return err?.message ?? 'Unknown error';
-            })()}
-          </p>
-        </div>
-      )}
-
-      {/* backend handshake pill (debug) */}
-      <div className="text-xs text-muted-foreground inline-flex items-center gap-2 px-3 py-1.5 rounded-full glass-card">
+      {/* Backend handshake pill (debug). */}
+      <div className="text-xs text-muted-foreground inline-flex items-center gap-2 px-3 py-1.5 rounded-full glass-blend">
         <span
           className={[
             'w-1.5 h-1.5 rounded-full',
-            meQuery.data ? 'bg-success' : 'bg-muted-foreground/40',
+            meQuery.data
+              ? 'bg-success'
+              : meQuery.isError
+                ? 'bg-destructive'
+                : 'bg-warning',
           ].join(' ')}
         />
         {meQuery.data
           ? `Clerk JWT verified · ${meQuery.data.userId.slice(0, 12)}…`
-          : 'Backend handshake: checking…'}
+          : meQuery.isError
+            ? errorKind === 'auth'
+              ? 'Backend auth misconfigured'
+              : errorKind === 'database'
+                ? 'Backend DB unavailable'
+                : 'Backend unavailable'
+            : 'Backend handshake: checking…'}
       </div>
     </div>
   );

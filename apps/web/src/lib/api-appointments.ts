@@ -92,6 +92,12 @@ export function listAppointments(
     to?: string;
     workerId?: string;
     status?: AppointmentStatus;
+    /**
+     * Case-insensitive text search against the appointment `notes`
+     * column. Added so the unified `/list` page can hit all four
+     * providers with the same `q`.
+     */
+    q?: string;
     limit?: number;
   } = {},
 ): Promise<AppointmentListResponse> {
@@ -101,6 +107,7 @@ export function listAppointments(
       to: params.to,
       workerId: params.workerId,
       status: params.status,
+      q: params.q,
       limit: params.limit,
     }),
     { method: 'GET', token },

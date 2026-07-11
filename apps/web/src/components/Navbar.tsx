@@ -91,7 +91,7 @@ function SignedInDesktopNav({
             className={[
               'group relative flex items-center gap-1.5 px-3.5 py-2 rounded-lg font-medium transition-all duration-200',
               isActive
-                ? 'text-foreground bg-white/[0.06] ring-1 ring-white/[0.10] scale-[1.02] shadow-[0_0_24px_-12px_rgba(59,130,246,0.6)]'
+                ? 'text-foreground bg-white/[0.04] ring-1 ring-white/[0.06] scale-[1.02]'
                 : 'text-muted-foreground hover:text-foreground hover:bg-white/[0.04]',
             ].join(' ')}
           >
@@ -125,7 +125,7 @@ function SignedInMobileTabBar({
   return (
     <nav
       aria-label="Primary"
-      className="fixed bottom-0 inset-x-0 z-40 lg:hidden flex justify-around items-center border-t border-white/[0.08] bg-background/85 backdrop-blur-xl py-2 px-2"
+      className="fixed bottom-0 inset-x-0 z-40 lg:hidden flex justify-around items-center border-t border-white/[0.08] bg-background/60 backdrop-blur-2xl backdrop-saturate-150 py-2 px-2"
       style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}
     >
       {NAV.map(({ key, label, icon: Icon, route }) => {
@@ -180,8 +180,14 @@ export default function Navbar(): JSX.Element {
 
   return (
     <>
+      {/*
+        Top nav: 100% transparent background + heavy backdrop blur so
+        content melts underneath as the user scrolls. No border (the brief
+        says "no harsh section breaks"). The active-link gradient underline
+        is still rendered.
+      */}
       <header
-        className="sticky top-0 z-30 border-b border-white/[0.06] bg-background/70 backdrop-blur-xl"
+        className="sticky top-0 z-30 bg-transparent backdrop-blur-2xl backdrop-saturate-150"
         style={{ height: 72 }}
       >
         <div className="h-full max-w-[1600px] mx-auto px-4 sm:px-6 flex items-center justify-between gap-4">
@@ -203,10 +209,10 @@ export default function Navbar(): JSX.Element {
                 type="button"
                 onClick={() => setCommandOpen(true)}
                 aria-label="Open command menu (⌘K)"
-                className="hidden md:flex items-center gap-2 h-9 pl-2.5 pr-2 rounded-lg glass-card text-sm text-muted-foreground hover:text-foreground hover:bg-white/[0.06] transition-colors min-w-[180px] lg:min-w-[220px]"
+                className="hidden md:flex items-center gap-2 h-9 pl-2.5 pr-2 rounded-lg glass-blend text-sm text-muted-foreground hover:text-foreground transition-colors min-w-[180px] lg:min-w-[220px]"
               >
                 <Search className="w-3.5 h-3.5" />
-                <span className="flex-1 text-left">Search…</span>
+                <span className="flex-1 text-left">Search...</span>
                 <kbd className="inline-flex items-center gap-0.5 text-[10px] font-mono px-1.5 py-0.5 rounded border border-white/[0.08] bg-white/[0.04]">
                   <CommandIcon className="w-2.5 h-2.5" />K
                 </kbd>
@@ -215,7 +221,7 @@ export default function Navbar(): JSX.Element {
                 type="button"
                 onClick={() => setCommandOpen(true)}
                 aria-label="Open command menu (⌘K)"
-                className="md:hidden w-9 h-9 rounded-lg glass-card flex items-center justify-center text-muted-foreground hover:text-foreground"
+                className="md:hidden w-9 h-9 rounded-lg glass-blend flex items-center justify-center text-muted-foreground hover:text-foreground"
               >
                 <Search className="w-4 h-4" />
               </button>
@@ -224,12 +230,12 @@ export default function Navbar(): JSX.Element {
 
             <SignedOut>
               <SignInButton mode="modal">
-                <button className="px-3.5 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+                <button className="btn-organic px-3.5 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
                   Sign in
                 </button>
               </SignInButton>
               <SignUpButton mode="modal">
-                <button className="px-4 py-2 rounded-lg text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm shadow-primary/30 hover:shadow-primary/50 transition-all">
+                <button className="btn-organic px-4 py-2 rounded-lg text-sm font-medium bg-primary text-primary-foreground shadow-sm shadow-primary/30">
                   Start Free Trial
                 </button>
               </SignUpButton>
