@@ -1,7 +1,9 @@
 import { useUser } from '@clerk/clerk-react';
 import { useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
+  ArrowRight,
   ArrowUpRight,
   Briefcase,
   ChevronRight,
