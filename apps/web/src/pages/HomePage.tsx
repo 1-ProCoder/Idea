@@ -421,13 +421,21 @@ export default function HomePage(): JSX.Element {
         <div className="flex items-center gap-2">
           <Link
             to="/dashboard"
-            className="btn-organic hidden sm:inline-flex px-3.5 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+            className="btn-organic inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-primary-foreground"
+            style={{
+              background:
+                'linear-gradient(120deg, hsl(var(--primary)) 0%, hsl(var(--secondary)) 100%)',
+              boxShadow:
+                '0 8px 22px -8px hsl(var(--primary) / 0.55), inset 0 1px 0 rgba(255,255,255,0.2)',
+            }}
           >
-            Explore the demo
+            <Sparkles className="w-3.5 h-3.5" />
+            Open the demo
+            <ArrowRight className="w-3.5 h-3.5" />
           </Link>
           <Link
             to="/waitlist"
-            className="btn-organic inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium bg-primary text-primary-foreground shadow-sm shadow-primary/30 hover:bg-primary/90 transition-colors"
+            className="btn-organic hidden sm:inline-flex px-3.5 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
           >
             Join the waitlist
           </Link>
@@ -736,8 +744,9 @@ export default function HomePage(): JSX.Element {
             <p className="mt-3 text-muted-foreground text-lg">
               No credit card. Set up in 2 minutes.
             </p>
-            <div className="mt-8 inline-flex items-center gap-4 flex-wrap justify-center">              <Link
-                to="/waitlist"
+            <div className="mt-8 inline-flex items-center gap-4 flex-wrap justify-center">
+              <Link
+                to="/dashboard"
                 className="btn-organic inline-flex items-center gap-2 px-6 py-3.5 rounded-xl font-semibold text-[15px] text-primary-foreground"
                 style={{
                   background:
@@ -747,6 +756,13 @@ export default function HomePage(): JSX.Element {
                 }}
               >
                 <Sparkles className="w-4 h-4" />
+                Open the demo
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+              <Link
+                to="/waitlist"
+                className="btn-organic inline-flex items-center gap-2 px-6 py-3.5 rounded-xl font-semibold text-[15px] text-foreground glass-card hover:bg-white/[0.08] transition-colors"
+              >
                 Join the waitlist
                 <ArrowRight className="w-4 h-4" />
               </Link>

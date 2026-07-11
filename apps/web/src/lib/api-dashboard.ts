@@ -59,14 +59,18 @@ export type ApiError = {
 
 async function authedFetch<T>(
   path: string,
-  init: RequestInit & { token: string },
+  init: RequestInit & { token: string | null },
 ): Promise<T> {
   const { token, headers, ...rest } = init;
   const res = await fetch(path, {
     ...rest,
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
+      // Only attach the Authorization header when we actually have a
+      // Clerk session token. When `token` is `null` the request goes
+      // out anonymous, and the backend routes it to the shared demo
+      // business.
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(headers as Record<string, string> | undefined),
     },
   });
@@ -86,7 +90,9 @@ async function authedFetch<T>(
   return (await res.json()) as T;
 }
 
-export function getDashboardStats(token: string): Promise<DashboardStats> {
+export function getDashboardStats(
+  token: string | null,
+): Promise<DashboardStats> {
   return authedFetch<DashboardStats>('/api/dashboard/stats', {
     method: 'GET',
     token,

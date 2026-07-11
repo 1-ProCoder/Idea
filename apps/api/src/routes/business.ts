@@ -6,6 +6,12 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '../db.js';
 import { getOrCreateDefaultBusiness } from '../lib/business.js';
 
+// GET /api/business is intentionally NOT `requireAuth()`-gated: signed-out
+// visitors hitting the landing page's "Open the demo" CTA land on
+// /dashboard, which fetches /api/business for the shared demo profile.
+// PATCH remains auth-gated — guests can read the demo's identity, name,
+// and timezone, but cannot mutate it.
+
 export const businessRouter = Router();
 
 // PATCH accepts any subset of these top-level fields + the optional
@@ -51,11 +57,9 @@ function asyncHandler(
 
 businessRouter.get(
   '/business',
-  requireAuth(),
   asyncHandler(async (req, res) => {
     const { userId } = getAuth(req);
-    if (!userId) return res.status(401).json({ error: 'unauthorized' });
-    const business = await getOrCreateDefaultBusiness(userId);
+    const business = await getOrCreateDefaultBusiness(userId ?? null);
     res.json(toDto(business));
   }),
 );

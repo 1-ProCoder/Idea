@@ -52,13 +52,18 @@ function asyncHandler(
   };
 }
 
+// GET /api/calls + GET /api/calls/stats are intentionally NOT
+// `requireAuth()`-gated: the dashboard's recent-calls card feeds off
+// these, and the dashboard is reachable to signed-out visitors via the
+// landing page's "Open the demo" CTA. `getOrCreateDefaultBusiness(null)`
+// routes them to the shared demo business. POST /api/calls remains
+// auth-gated — guests can read demo data but cannot create calls.
+
 callsRouter.get(
   '/calls',
-  requireAuth(),
   asyncHandler(async (req, res) => {
     const { userId } = getAuth(req);
-    if (!userId) return res.status(401).json({ error: 'unauthorized' });
-    const business = await getOrCreateDefaultBusiness(userId);
+    const business = await getOrCreateDefaultBusiness(userId ?? null);
     const params = ListQuerySchema.parse(req.query);
 
     const calls = await prisma.call.findMany({
@@ -116,11 +121,9 @@ callsRouter.post(
 
 callsRouter.get(
   '/calls/stats',
-  requireAuth(),
   asyncHandler(async (req, res) => {
     const { userId } = getAuth(req);
-    if (!userId) return res.status(401).json({ error: 'unauthorized' });
-    const business = await getOrCreateDefaultBusiness(userId);
+    const business = await getOrCreateDefaultBusiness(userId ?? null);
 
     // Aggregate counts + 7-day sparkline in a single round-trip using
     // Prisma's `groupBy`. Avoids the 5-query waterfall the dashboard

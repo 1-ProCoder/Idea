@@ -18,7 +18,7 @@ import { PageHeader } from '../components/layout/PageHeader';
 import { StatRowItem } from '../components/ui/StatCard';
 import { Sparkline } from '../components/ui/Sparkline';
 import { EmptyState } from '../components/ui/EmptyState';
-import { useAuthedFetch } from '../hooks/useAuthedFetch';
+import { useAuthedFetch, useOptionalFetch } from '../hooks/useAuthedFetch';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   getDashboardStats,
@@ -125,13 +125,15 @@ function jobStatusBadge(status: JobListItem['status']): {
 }
 
 export default function DashboardPage(): JSX.Element {
-  const { user, isLoaded } = useUser();
+  const { user, isLoaded, isSignedIn } = useUser();
   const authedFetch = useAuthedFetch();
+  const optionalFetch = useOptionalFetch();
 
-  // /api/me requires auth (requireAuth() on the server) — route the
-  // fetch through useAuthedFetch so the Clerk JWT is automatically
-  // attached. Without this header the endpoint returns 401 and the
-  // "Backend handshake: checking…" pill stays red forever.
+  // /api/me requires auth (requireAuth() on the server) — only fire
+  // when the visitor is actually signed in. Signed-out visitors
+  // browsing the landing page's "Open the demo" CTA still see a fully
+  // populated dashboard thanks to /api/dashboard/stats + /api/calls,
+  // both of which have been intentionally opened up to demo traffic.
   //
   // NOTE: we intentionally don't name the closure `fetch` — that would
   // shadow the global `fetch` and break the inner `await fetch('/api/me', …)`
@@ -154,21 +156,25 @@ export default function DashboardPage(): JSX.Element {
         }
         return (await res.json()) as MeResponse;
       }),
-    enabled: isLoaded,
+    enabled: isLoaded && isSignedIn === true,
     staleTime: 60_000,
   });
 
+  // /api/dashboard/stats is public — works for both signed-in users
+  // (their own business) and signed-out visitors (shared demo
+  // business). No `enabled` gate: we want stats to load as soon as
+  // the page mounts regardless of Clerk auth state.
   const statsQuery = useQuery<DashboardStats>({
     queryKey: ['dashboard-stats'],
-    queryFn: () => authedFetch((token) => getDashboardStats(token)),
-    enabled: isLoaded,
+    queryFn: () => optionalFetch((token) => getDashboardStats(token)),
     staleTime: 30_000,
   });
 
+  // /api/calls (list) is also public for the demo. Same rationale as
+  // statsQuery — works for both signed-in and signed-out visitors.
   const callsQuery = useQuery<CallListResponse>({
     queryKey: ['calls', { limit: 5 }],
-    queryFn: () => authedFetch((token) => listCalls(token, { limit: 5 })),
-    enabled: isLoaded,
+    queryFn: () => optionalFetch((token) => listCalls(token, { limit: 5 })),
     staleTime: 30_000,
   });
 
@@ -179,9 +185,9 @@ export default function DashboardPage(): JSX.Element {
   // database_unavailable), but they get embedded into the throw-string
   // by useAuthedFetch, so we substring-match on the message.
   const backendErrorMsg = (
-    (meQuery.error as Error | null)?.message ??
     (statsQuery.error as Error | null)?.message ??
     (callsQuery.error as Error | null)?.message ??
+    (meQuery.error as Error | null)?.message ??
     ''
   ).toLowerCase();
 
@@ -192,10 +198,13 @@ export default function DashboardPage(): JSX.Element {
         ? 'database'
         : 'other';
 
-  const firstName = useMemo(
-    () => user?.firstName ?? user?.username ?? 'there',
-    [user],
-  );
+  // For signed-in users, greet them by first name / username. For
+  // signed-out visitors (the demo CTA), use a neutral welcome so the
+  // page reads as "preview" rather than "broken".
+  const greetingName = useMemo(() => {
+    if (isSignedIn === false) return 'explorer';
+    return user?.firstName ?? user?.username ?? 'there';
+  }, [isSignedIn, user]);
 
   const stats = statsQuery.data;
   const calls: CallDto[] = callsQuery.data?.items ?? [];
@@ -211,7 +220,7 @@ export default function DashboardPage(): JSX.Element {
   const activeTechnicians = stats?.totals.activeTechnicians ?? 0;
 
   const isBackendError =
-    meQuery.isError || statsQuery.isError || callsQuery.isError;
+    statsQuery.isError || callsQuery.isError;
 
   const isAllEmpty =
     !statsQuery.isPending &&
@@ -227,8 +236,16 @@ export default function DashboardPage(): JSX.Element {
     <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-8 pb-32 space-y-10">
       <PageHeader
         eyebrow="Today"
-        title={`${timeOfDayGreeting()}, ${firstName} 👋`}
-        subtitle="Here's what's happening in your business today."
+        title={
+          isSignedIn === false
+            ? 'Welcome to the FlowFix AI demo 👋'
+            : `${timeOfDayGreeting()}, ${greetingName} 👋`
+        }
+        subtitle={
+          isSignedIn === false
+            ? "You're browsing a shared demo business. Sign in any time to start saving your own data."
+            : "Here's what's happening in your business today."
+        }
         actions={
           <>
             <button className="btn-organic px-4 py-2 rounded-lg glass-blend text-sm font-medium text-foreground/90 hover:text-foreground inline-flex items-center gap-2">
@@ -535,27 +552,32 @@ export default function DashboardPage(): JSX.Element {
         </>
       )}
 
-      {/* Backend handshake pill (debug). */}
+      {/* Backend handshake pill (debug).
+          - Signed in + /api/me ok  → "Clerk JWT verified · …"
+          - Signed in + /api/me err → existing auth/database/general error copy
+          - Signed out              → "Demo data · shared demo business"  */}
       <div className="text-xs text-muted-foreground inline-flex items-center gap-2 px-3 py-1.5 rounded-full glass-blend">
         <span
           className={[
             'w-1.5 h-1.5 rounded-full',
-            meQuery.data
-              ? 'bg-success'
-              : meQuery.isError
-                ? 'bg-destructive'
+            isBackendError
+              ? 'bg-destructive'
+              : meQuery.data || statsQuery.data
+                ? 'bg-success'
                 : 'bg-warning',
           ].join(' ')}
         />
-        {meQuery.data
-          ? `Clerk JWT verified · ${meQuery.data.userId.slice(0, 12)}…`
-          : meQuery.isError
-            ? errorKind === 'auth'
-              ? 'Backend auth misconfigured'
-              : errorKind === 'database'
-                ? 'Backend DB unavailable'
-                : 'Backend unavailable'
-            : 'Backend handshake: checking…'}
+        {isBackendError
+          ? errorKind === 'auth'
+            ? 'Backend auth misconfigured'
+            : errorKind === 'database'
+              ? 'Backend DB unavailable'
+              : 'Backend unavailable'
+          : isSignedIn === false
+            ? 'Demo data · shared demo business'
+            : meQuery.data
+              ? `Clerk JWT verified · ${meQuery.data.userId.slice(0, 12)}…`
+              : 'Backend handshake: checking…'}
       </div>
     </div>
   );

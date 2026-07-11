@@ -82,11 +82,13 @@ export default function App() {
           <Route path="/waitlist" element={<WaitlistPage />} />
           <Route
             path="/dashboard"
-            element={
-              <Protected>
-                <DashboardPage />
-              </Protected>
-            }
+            // Intentionally NOT wrapped in <Protected>: the landing
+            // page's "Open the demo" CTA takes signed-out visitors
+            // straight to /dashboard, which renders seeded demo data
+            // from the shared demo business. Other dashboard routes
+            // (calls, technicians, schedule, settings, etc.) remain
+            // auth-gated.
+            element={<DashboardPage />}
           />
           <Route
             path="/calls"

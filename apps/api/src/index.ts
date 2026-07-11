@@ -191,5 +191,12 @@ app.listen(PORT, () => {
   console.log(
     `[api] WAITLIST_FORWARD_TO: ${process.env.WAITLIST_FORWARD_TO ?? 'princenauman101@gmail.com (fallback)'}`,
   );
+  // Log which business the public demo resolves to on first call.
+  // This is lazy: we only resolve when the first public GET hits the
+  // API, so we don't slow down startup. Operators can see it by
+  // visiting /dashboard in a private window.
+  console.log(
+    `[api] public demo mode: enabled. GET /api/dashboard/stats, /api/business, /api/calls, /api/calls/stats are reachable without a Clerk session and resolve to the shared demo business.`,
+  );
 });
 

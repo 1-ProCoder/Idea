@@ -1,5 +1,5 @@
 import { Router, type Request, type Response, type NextFunction } from 'express';
-import { requireAuth, getAuth } from '@clerk/express';
+import { getAuth } from '@clerk/express';
 
 import { prisma } from '../db.js';
 import { getOrCreateDefaultBusiness } from '../lib/business.js';
@@ -9,13 +9,18 @@ export const dashboardRouter = Router();
 // Single aggregated payload for the Dashboard page. Avoids a 5-query
 // waterfall from the frontend (calls stats, jobs stats, appt stats, tech
 // stats, recent-activity). Single round-trip, all counts + top-N lists.
+//
+// Intentionally NOT `requireAuth()`-gated: the landing page's
+// "Open the demo" CTA takes signed-out visitors straight to /dashboard,
+// and the dashboard renders real (seeded) data from the shared demo
+// business. `getOrCreateDefaultBusiness(null)` resolves to that demo
+// business. Write actions elsewhere (POST/PATCH/DELETE) still require
+// auth — this only relaxes the read path.
 dashboardRouter.get(
   '/dashboard/stats',
-  requireAuth(),
   asyncHandler(async (req, res) => {
     const { userId } = getAuth(req);
-    if (!userId) return res.status(401).json({ error: 'unauthorized' });
-    const business = await getOrCreateDefaultBusiness(userId);
+    const business = await getOrCreateDefaultBusiness(userId ?? null);
 
     const now = new Date();
     const startOfDay = new Date(now);

@@ -45,14 +45,17 @@ export type ApiError = {
 
 async function authedFetch<T>(
   path: string,
-  init: RequestInit & { token: string },
+  init: RequestInit & { token: string | null },
 ): Promise<T> {
   const { token, headers, ...rest } = init;
   const res = await fetch(path, {
     ...rest,
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
+      // Only attach the Authorization header when we actually have a
+      // Clerk session token. Anonymous requests (token === null) are
+      // routed to the shared demo business on the backend.
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(headers as Record<string, string> | undefined),
     },
   });
@@ -88,7 +91,7 @@ function withQuery(
 }
 
 export function listCalls(
-  token: string,
+  token: string | null,
   params: {
     status?: 'ALL' | 'EMERGENCY' | 'MISSED' | 'OK';
     q?: string;
@@ -107,7 +110,10 @@ export function listCalls(
   );
 }
 
-export function getCall(token: string, id: string): Promise<CallDto> {
+export function getCall(
+  token: string | null,
+  id: string,
+): Promise<CallDto> {
   return authedFetch<CallDto>(`/api/calls/${id}`, { method: 'GET', token });
 }
 
@@ -119,7 +125,9 @@ export function createCall(token: string, input: CallInput): Promise<CallDto> {
   });
 }
 
-export function getCallStats(token: string): Promise<CallStatsResponse> {
+export function getCallStats(
+  token: string | null,
+): Promise<CallStatsResponse> {
   return authedFetch<CallStatsResponse>('/api/calls/stats', {
     method: 'GET',
     token,
