@@ -43,14 +43,20 @@ export type ApiError = {
 
 async function authedFetch<T>(
   path: string,
-  init: RequestInit & { token: string },
+  init: RequestInit & { token: string | null },
 ): Promise<T> {
   const { token, headers, ...rest } = init;
   const res = await fetch(path, {
     ...rest,
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
+      // Only attach the Authorization header when we actually have a
+      // Clerk session token. When `token` is `null` the request goes
+      // out anonymous, and the backend routes it to the shared demo
+      // business. The PATCH/DELETE endpoints remain auth-gated, so a
+      // null token there returns 401 — the intended behavior for
+      // guests trying to mutate demo data.
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(headers as Record<string, string> | undefined),
     },
   });
@@ -86,7 +92,7 @@ function withQuery(
 }
 
 export function listAppointments(
-  token: string,
+  token: string | null,
   params: {
     from?: string;
     to?: string;
@@ -115,7 +121,7 @@ export function listAppointments(
 }
 
 export function getAppointment(
-  token: string,
+  token: string | null,
   id: string,
 ): Promise<AppointmentDto> {
   return authedFetch<AppointmentDto>(`/api/appointments/${id}`, {
@@ -125,7 +131,7 @@ export function getAppointment(
 }
 
 export function updateAppointment(
-  token: string,
+  token: string | null,
   id: string,
   input: AppointmentPatchInput,
 ): Promise<AppointmentDto> {
@@ -136,6 +142,9 @@ export function updateAppointment(
   });
 }
 
-export function deleteAppointment(token: string, id: string): Promise<void> {
+export function deleteAppointment(
+  token: string | null,
+  id: string,
+): Promise<void> {
   return authedFetch<void>(`/api/appointments/${id}`, { method: 'DELETE', token });
 }

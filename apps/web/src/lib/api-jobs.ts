@@ -54,14 +54,20 @@ export type ApiError = {
 
 async function authedFetch<T>(
   path: string,
-  init: RequestInit & { token: string },
+  init: RequestInit & { token: string | null },
 ): Promise<T> {
   const { token, headers, ...rest } = init;
   const res = await fetch(path, {
     ...rest,
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
+      // Only attach the Authorization header when we actually have a
+      // Clerk session token. When `token` is `null` the request goes
+      // out anonymous, and the backend routes it to the shared demo
+      // business. The mutation endpoints (createJob, updateJob,
+      // deleteJob) remain auth-gated server-side, so a null token
+      // there returns 401 — the intended behavior for guests.
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(headers as Record<string, string> | undefined),
     },
   });
@@ -97,7 +103,7 @@ function withQuery(
 }
 
 export function listJobs(
-  token: string,
+  token: string | null,
   params: {
     status?: JobStatus;
     priority?: JobPriority;
@@ -118,11 +124,17 @@ export function listJobs(
   );
 }
 
-export function getJob(token: string, id: string): Promise<JobDto> {
+export function getJob(
+  token: string | null,
+  id: string,
+): Promise<JobDto> {
   return authedFetch<JobDto>(`/api/jobs/${id}`, { method: 'GET', token });
 }
 
-export function createJob(token: string, input: JobInput): Promise<JobDto> {
+export function createJob(
+  token: string | null,
+  input: JobInput,
+): Promise<JobDto> {
   return authedFetch<JobDto>('/api/jobs', {
     method: 'POST',
     token,
@@ -131,7 +143,7 @@ export function createJob(token: string, input: JobInput): Promise<JobDto> {
 }
 
 export function updateJob(
-  token: string,
+  token: string | null,
   id: string,
   input: Partial<JobInput>,
 ): Promise<JobDto> {
@@ -142,6 +154,9 @@ export function updateJob(
   });
 }
 
-export function deleteJob(token: string, id: string): Promise<void> {
+export function deleteJob(
+  token: string | null,
+  id: string,
+): Promise<void> {
   return authedFetch<void>(`/api/jobs/${id}`, { method: 'DELETE', token });
 }

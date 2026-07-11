@@ -13,7 +13,7 @@ import {
 import type { JSX } from 'react';
 
 import { PageHeader } from '../components/layout/PageHeader';
-import { useAuthedFetch } from '../hooks/useAuthedFetch';
+import { useOptionalFetch } from '../hooks/useAuthedFetch';
 import {
   createCustomer,
   type ApiError as ApiErrorT,
@@ -85,8 +85,14 @@ const inputClass =
  * "New" on `/list` is intentionally customer-only for now.
  */
 export default function ListNewPage(): JSX.Element {
+  // /list/new is public for signed-out visitors via the demo CTA.
+  // The page renders the form; submission calls POST /api/customers
+  // which is auth-gated, so signed-out visitors see a clean 401
+  // error from the backend instead of a local "Not authenticated"
+  // throw from the hook. We use `useOptionalFetch` so the
+  // conditional Authorization header is wired correctly.
   const { isLoaded } = useUser();
-  const fetch = useAuthedFetch();
+  const fetch = useOptionalFetch();
   const navigate = useNavigate();
 
   const [values, setValues] = useState<CustomerInput>({

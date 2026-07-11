@@ -1,6 +1,5 @@
-import type { ReactNode } from 'react';
 import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom';
-import { SignedIn, SignedOut, RedirectToSignIn } from '@clerk/clerk-react';
+import { SignedIn, SignedOut } from '@clerk/clerk-react';
 import { ArrowLeft, Compass } from 'lucide-react';
 
 import { CanvasBackdrop } from './components/ui/CanvasBackdrop';
@@ -27,24 +26,6 @@ import NotificationsSettings from './pages/settings/NotificationsSettings';
 import IntegrationsSettings from './pages/settings/IntegrationsSettings';
 import BillingSettings from './pages/settings/BillingSettings';
 import SecuritySettings from './pages/settings/SecuritySettings';
-
-/**
- * `Protected` wraps dashboard routes. Clerk handles auth gating via
- * `<SignedIn>` (renders children) and `<SignedOut>` (redirects to
- * `/sign-in`). Dashboard pages fetch from the live API via Clerk-authenticated
- * `useAuthedFetch`, so they always see the signed-in user's real data,
- * never seeded demo data.
- */
-function Protected({ children }: { children: ReactNode }) {
-  return (
-    <>
-      <SignedIn>{children}</SignedIn>
-      <SignedOut>
-        <RedirectToSignIn />
-      </SignedOut>
-    </>
-  );
-}
 
 export default function App() {
   const location = useLocation();

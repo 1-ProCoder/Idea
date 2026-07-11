@@ -95,7 +95,7 @@ export function listWorkers(
 }
 
 export function createWorker(
-  token: string,
+  token: string | null,
   input: WorkerInput,
 ): Promise<WorkerDto> {
   return authedFetch<WorkerDto>('/api/workers', {
@@ -106,7 +106,7 @@ export function createWorker(
 }
 
 export function updateWorker(
-  token: string,
+  token: string | null,
   id: string,
   input: Partial<WorkerInput>,
 ): Promise<WorkerDto> {
@@ -117,7 +117,10 @@ export function updateWorker(
   });
 }
 
-export function deleteWorker(token: string, id: string): Promise<void> {
+export function deleteWorker(
+  token: string | null,
+  id: string,
+): Promise<void> {
   return authedFetch<void>(`/api/workers/${id}`, {
     method: 'DELETE',
     token,

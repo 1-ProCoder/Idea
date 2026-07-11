@@ -105,7 +105,7 @@ export function listCustomers(
 }
 
 export function createCustomer(
-  token: string,
+  token: string | null,
   input: CustomerInput,
 ): Promise<CustomerDto> {
   return authedFetch<CustomerDto>('/api/customers', {
@@ -116,7 +116,7 @@ export function createCustomer(
 }
 
 export function updateCustomer(
-  token: string,
+  token: string | null,
   id: string,
   input: Partial<CustomerInput>,
 ): Promise<CustomerDto> {
@@ -127,7 +127,10 @@ export function updateCustomer(
   });
 }
 
-export function deleteCustomer(token: string, id: string): Promise<void> {
+export function deleteCustomer(
+  token: string | null,
+  id: string,
+): Promise<void> {
   return authedFetch<void>(`/api/customers/${id}`, {
     method: 'DELETE',
     token,
