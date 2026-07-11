@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useUser } from '@clerk/clerk-react';
 import { CheckCircle2, Loader2 } from 'lucide-react';
 import type { JSX } from 'react';
 
 import { PageHeader } from '../../components/layout/PageHeader';
 import { FieldRow, SettingsCard, Toggle } from '../../components/settings/SettingsPrimitives';
-import { useAuthedFetch } from '../../hooks/useAuthedFetch';
+import { useOptionalFetch } from '../../hooks/useAuthedFetch';
 import {
   getBusiness,
   updateBusiness,
@@ -39,8 +38,7 @@ function readPrefs(b: BusinessProfileDto): NotificationPrefs {
 }
 
 export default function NotificationsSettings(): JSX.Element {
-  const { isLoaded } = useUser();
-  const fetch = useAuthedFetch();
+  const fetch = useOptionalFetch();
   const qc = useQueryClient();
 
   const [prefs, setPrefs] = useState<NotificationPrefs>(DEFAULTS);
@@ -52,7 +50,6 @@ export default function NotificationsSettings(): JSX.Element {
   const query = useQuery<BusinessProfileDto>({
     queryKey: ['business'],
     queryFn: () => fetch((token) => getBusiness(token)),
-    enabled: isLoaded,
     staleTime: 60_000,
   });
 

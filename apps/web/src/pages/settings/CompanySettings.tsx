@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useUser } from '@clerk/clerk-react';
 import { CheckCircle2, Loader2 } from 'lucide-react';
 import type { JSX } from 'react';
 
@@ -10,7 +9,7 @@ import {
   SettingsCard,
   TextInput,
 } from '../../components/settings/SettingsPrimitives';
-import { useAuthedFetch } from '../../hooks/useAuthedFetch';
+import { useOptionalFetch } from '../../hooks/useAuthedFetch';
 import {
   getBusiness,
   updateBusiness,
@@ -33,8 +32,7 @@ function readBranding(b: BusinessProfileDto): BrandingExtras {
 }
 
 export default function CompanySettings(): JSX.Element {
-  const { isLoaded } = useUser();
-  const fetch = useAuthedFetch();
+  const fetch = useOptionalFetch();
   const qc = useQueryClient();
 
   const [email, setEmail] = useState('');
@@ -51,7 +49,6 @@ export default function CompanySettings(): JSX.Element {
   const query = useQuery<BusinessProfileDto>({
     queryKey: ['business'],
     queryFn: () => fetch((token) => getBusiness(token)),
-    enabled: isLoaded,
     staleTime: 60_000,
   });
 

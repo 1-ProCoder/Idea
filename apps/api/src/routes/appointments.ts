@@ -109,11 +109,9 @@ appointmentsRouter.get(
 
 appointmentsRouter.get(
   '/appointments/:id',
-  requireAuth(),
   asyncHandler(async (req, res) => {
     const { userId } = getAuth(req);
-    if (!userId) return res.status(401).json({ error: 'unauthorized' });
-    const business = await getOrCreateDefaultBusiness(userId);
+    const business = await getOrCreateDefaultBusiness(userId ?? null);
 
     const appt = await prisma.appointment.findFirst({
       where: { id: req.params.id, businessId: business.id },

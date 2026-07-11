@@ -36,14 +36,20 @@ export type ApiError = {
 
 async function authedFetch<T>(
   path: string,
-  init: RequestInit & { token: string },
+  init: RequestInit & { token: string | null },
 ): Promise<T> {
   const { token, headers, ...rest } = init;
   const res = await fetch(path, {
     ...rest,
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
+      // Only attach the Authorization header when we actually have a
+      // Clerk session token. When `token` is `null` the request goes
+      // out anonymous, and the backend routes it to the shared demo
+      // business. The PATCH endpoint remains auth-gated, so a null
+      // token there returns 401 — which is the intended behavior
+      // for guests trying to mutate.
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(headers as Record<string, string> | undefined),
     },
   });
@@ -65,7 +71,7 @@ async function authedFetch<T>(
   return (await res.json()) as T;
 }
 
-export function getBusiness(token: string): Promise<BusinessProfileDto> {
+export function getBusiness(token: string | null): Promise<BusinessProfileDto> {
   return authedFetch<BusinessProfileDto>('/api/business', {
     method: 'GET',
     token,
@@ -73,7 +79,7 @@ export function getBusiness(token: string): Promise<BusinessProfileDto> {
 }
 
 export function updateBusiness(
-  token: string,
+  token: string | null,
   input: BusinessPatchInput,
 ): Promise<BusinessProfileDto> {
   return authedFetch<BusinessProfileDto>('/api/business', {

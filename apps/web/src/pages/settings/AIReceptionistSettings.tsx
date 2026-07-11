@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useUser } from '@clerk/clerk-react';
 import { CheckCircle2, Loader2 } from 'lucide-react';
 import type { JSX } from 'react';
 
@@ -11,7 +10,7 @@ import {
   SettingsCard,
   TextInput,
 } from '../../components/settings/SettingsPrimitives';
-import { useAuthedFetch } from '../../hooks/useAuthedFetch';
+import { useOptionalFetch } from '../../hooks/useAuthedFetch';
 import {
   getBusiness,
   updateBusiness,
@@ -57,8 +56,7 @@ function readAIConfig(b: BusinessProfileDto): AIConfig {
 }
 
 export default function AIReceptionistSettings(): JSX.Element {
-  const { isLoaded } = useUser();
-  const fetch = useAuthedFetch();
+  const fetch = useOptionalFetch();
   const qc = useQueryClient();
 
   const [voice, setVoice] = useState('nova');
@@ -72,7 +70,6 @@ export default function AIReceptionistSettings(): JSX.Element {
   const query = useQuery<BusinessProfileDto>({
     queryKey: ['business'],
     queryFn: () => fetch((token) => getBusiness(token)),
-    enabled: isLoaded,
     staleTime: 60_000,
   });
 

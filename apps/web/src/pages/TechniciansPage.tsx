@@ -16,7 +16,7 @@ import { Link } from 'react-router-dom';
 import { PageHeader } from '../components/layout/PageHeader';
 import { StatRowItem } from '../components/ui/StatCard';
 import { EmptyState } from '../components/ui/EmptyState';
-import { useAuthedFetch } from '../hooks/useAuthedFetch';
+import { useOptionalFetch } from '../hooks/useAuthedFetch';
 import { useQuery } from '@tanstack/react-query';
 import {
   listWorkers,
@@ -58,14 +58,17 @@ function gradientFor(id: string): string {
 }
 
 export default function TechniciansPage(): JSX.Element {
-  const { isLoaded } = useUser();
-  const fetch = useAuthedFetch();
+  const fetch = useOptionalFetch();
   const [search, setSearch] = useState('');
 
   const workersQuery = useQuery<WorkerListResponse>({
     queryKey: ['workers', {}],
     queryFn: () => fetch((token) => listWorkers(token, {})),
-    enabled: isLoaded,
+    // /technicians is public for signed-out visitors via the demo
+    // CTA. `useOptionalFetch` forwards `null` when there's no
+    // Clerk session, and the backend routes to the shared demo
+    // business. No `enabled: isLoaded` gate — we want the query
+    // to fire on mount regardless of Clerk state.
     staleTime: 30_000,
   });
 

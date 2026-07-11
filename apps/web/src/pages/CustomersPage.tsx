@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type ChangeEvent } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Search, UserPlus, Users } from 'lucide-react';
 
-import { useAuthedFetch } from '../hooks/useAuthedFetch';
+import { useOptionalFetch } from '../hooks/useAuthedFetch';
 import {
   listCustomers,
   type ApiError,
@@ -41,7 +41,11 @@ function CustomersSkeletonGrid(): JSX.Element {
 }
 
 export default function CustomersPage() {
-  const fetch = useAuthedFetch();
+  // /customers is public for signed-out visitors via the demo CTA.
+  // The list endpoint is now public, so the query fires on mount
+  // regardless of Clerk state. The modal still uses
+  // `useAuthedFetch` for the mutation (POST is auth-gated).
+  const fetch = useOptionalFetch();
   const [rawSearch, setRawSearch] = useState('');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);

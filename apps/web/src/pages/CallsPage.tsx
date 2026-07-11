@@ -12,7 +12,7 @@ import {
 import { PageHeader } from '../components/layout/PageHeader';
 import { StatCard } from '../components/ui/StatCard';
 import { EmptyState } from '../components/ui/EmptyState';
-import { useAuthedFetch } from '../hooks/useAuthedFetch';
+import { useOptionalFetch } from '../hooks/useAuthedFetch';
 import { useQuery } from '@tanstack/react-query';
 import {
   listCalls,
@@ -69,8 +69,12 @@ function statusBadge(isEmergency: boolean): {
 }
 
 export default function CallsPage(): JSX.Element {
-  const { isLoaded } = useUser();
-  const fetch = useAuthedFetch();
+  // /calls is public for signed-out visitors via the demo CTA. The
+  // calls + call-stats endpoints are now public GETs, so the queries
+  // fire on mount regardless of Clerk state. `useOptionalFetch`
+  // forwards `null` when there's no session, and the backend routes
+  // to the shared demo business.
+  const fetch = useOptionalFetch();
 
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<'all' | 'emergency'>('all');
@@ -78,14 +82,12 @@ export default function CallsPage(): JSX.Element {
   const statsQuery = useQuery<CallStatsResponse>({
     queryKey: ['call-stats'],
     queryFn: () => fetch((token) => getCallStats(token)),
-    enabled: isLoaded,
     staleTime: 30_000,
   });
 
   const callsQuery = useQuery<CallListResponse>({
     queryKey: ['calls', { limit: 100 }],
     queryFn: () => fetch((token) => listCalls(token, { limit: 100 })),
-    enabled: isLoaded,
     staleTime: 30_000,
   });
 

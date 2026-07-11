@@ -11,7 +11,6 @@ import {
   X,
 } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useUser } from '@clerk/clerk-react';
 import type { JSX } from 'react';
 
 import { PageHeader } from '../../components/layout/PageHeader';
@@ -23,7 +22,7 @@ import {
   Toggle,
 } from '../../components/settings/SettingsPrimitives';
 import { EmptyState } from '../../components/ui/EmptyState';
-import { useAuthedFetch } from '../../hooks/useAuthedFetch';
+import { useOptionalFetch } from '../../hooks/useAuthedFetch';
 import {
   createWorker,
   deleteWorker,
@@ -42,8 +41,7 @@ const ROLE_LABEL: Record<WorkerRole, string> = {
 };
 
 export default function TeamSettings(): JSX.Element {
-  const { isLoaded } = useUser();
-  const fetch = useAuthedFetch();
+  const fetch = useOptionalFetch();
   const qc = useQueryClient();
 
   const [search, setSearch] = useState('');
@@ -57,7 +55,6 @@ export default function TeamSettings(): JSX.Element {
   const workersQuery = useQuery<WorkerListResponse>({
     queryKey: ['workers', {}],
     queryFn: () => fetch((token) => listWorkers(token, {})),
-    enabled: isLoaded,
     staleTime: 30_000,
   });
 

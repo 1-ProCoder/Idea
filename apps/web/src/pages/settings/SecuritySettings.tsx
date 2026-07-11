@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useUser, useSession, useSessionList } from '@clerk/clerk-react';
 import {
   AlertTriangle,
@@ -22,11 +23,15 @@ import { downloadBusinessExport } from '../../lib/api-security';
 import type { ApiError as ApiErrorT } from '../../lib/api-business';
 
 export default function SecuritySettings(): JSX.Element {
-  const { isLoaded } = useUser();
+  const { isLoaded, isSignedIn } = useUser();
   const { session } = useSession();
   // Clerk's useSessionList returns `{ sessions, isLoading, ... }` — not
   // `{ data, isLoading }`. Alias the field we actually use.
   const { sessions: sessionList } = useSessionList();
+  // The export endpoint is auth-gated (see apps/api/src/routes/security.ts).
+  // We keep `useAuthedFetch` here so signed-in callers go through the
+  // standard bearer-token path, and the export button is hidden for
+  // signed-out visitors (see the conditional below).
   const fetch = useAuthedFetch();
 
   const [twoFactor, setTwoFactor] = useState(false);
@@ -180,23 +185,33 @@ export default function SecuritySettings(): JSX.Element {
               </span>
             )}
           </div>
-          <button
-            type="button"
-            onClick={runExport}
-            disabled={!isLoaded || exporting}
-            className="btn-organic inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-semibold shadow-sm shadow-primary/30 disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            {exporting ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" /> Preparing…
-              </>
-            ) : (
-              <>
-                <Download className="w-4 h-4" />
-                Export data
-              </>
-            )}
-          </button>
+          {isSignedIn === false ? (
+            <Link
+              to="/waitlist"
+              className="btn-organic inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-semibold shadow-sm shadow-primary/30"
+            >
+              <Download className="w-4 h-4" />
+              Sign in to export your data
+            </Link>
+          ) : (
+            <button
+              type="button"
+              onClick={runExport}
+              disabled={!isLoaded || exporting}
+              className="btn-organic inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-semibold shadow-sm shadow-primary/30 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {exporting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" /> Preparing…
+                </>
+              ) : (
+                <>
+                  <Download className="w-4 h-4" />
+                  Export data
+                </>
+              )}
+            </button>
+          )}
         </div>
       </SettingsCard>
 

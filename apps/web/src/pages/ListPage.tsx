@@ -7,7 +7,7 @@ import type { JSX } from 'react';
 import { PageHeader } from '../components/layout/PageHeader';
 import { StatCard } from '../components/ui/StatCard';
 import { UnifiedListBoard } from '../components/list/UnifiedListBoard';
-import { useAuthedFetch } from '../hooks/useAuthedFetch';
+import { useOptionalFetch } from '../hooks/useAuthedFetch';
 import {
   fetchUnifiedItems,
   type UnifiedListResponse,
@@ -26,8 +26,11 @@ import {
  * every keystroke.
  */
 export default function ListPage(): JSX.Element {
-  const { isLoaded } = useUser();
-  const fetch = useAuthedFetch();
+  // /list is public for signed-out visitors via the demo CTA. The
+  // four unified-list endpoints (customers, jobs, calls,
+  // appointments) are now public GETs, so the query fires on mount
+  // regardless of Clerk state.
+  const fetch = useOptionalFetch();
   const [rawSearch, setRawSearch] = useState('');
   const [search, setSearch] = useState('');
   const [tab, setTab] = useState<UnifiedListTab>('all');
@@ -47,7 +50,6 @@ export default function ListPage(): JSX.Element {
   const query = useQuery<UnifiedListResponse>({
     queryKey,
     queryFn: () => fetch((token) => fetchUnifiedItems(token, { q: search })),
-    enabled: isLoaded,
     placeholderData: (prev) => prev,
     staleTime: 30_000,
   });

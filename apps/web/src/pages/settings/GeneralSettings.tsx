@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useUser } from '@clerk/clerk-react';
 import { CheckCircle2, Loader2 } from 'lucide-react';
 import type { JSX } from 'react';
 
@@ -12,7 +11,7 @@ import {
   TextInput,
   Toggle,
 } from '../../components/settings/SettingsPrimitives';
-import { useAuthedFetch } from '../../hooks/useAuthedFetch';
+import { useOptionalFetch } from '../../hooks/useAuthedFetch';
 import {
   getBusiness,
   updateBusiness,
@@ -63,8 +62,7 @@ function readBrandPrefs(b: BusinessProfileDto): BrandPrefs {
 }
 
 export default function GeneralSettings(): JSX.Element {
-  const { isLoaded } = useUser();
-  const fetch = useAuthedFetch();
+  const fetch = useOptionalFetch();
   const qc = useQueryClient();
 
   const [name, setName] = useState('');
@@ -81,7 +79,9 @@ export default function GeneralSettings(): JSX.Element {
   const query = useQuery<BusinessProfileDto>({
     queryKey: ['business'],
     queryFn: () => fetch((token) => getBusiness(token)),
-    enabled: isLoaded,
+    // /settings/:section is public for signed-out visitors via the
+    // demo CTA. The business endpoint is now public, so the query
+    // fires on mount regardless of Clerk state.
     staleTime: 60_000,
   });
 

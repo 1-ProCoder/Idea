@@ -1,5 +1,4 @@
-import { useMutation, useQuery } from '@tanstack/react-query';
-import { useUser } from '@clerk/clerk-react';
+import { useQuery } from '@tanstack/react-query';
 import {
   Briefcase,
   Calendar,
@@ -21,7 +20,7 @@ import {
   SettingsCard,
   TextInput,
 } from '../../components/settings/SettingsPrimitives';
-import { useAuthedFetch } from '../../hooks/useAuthedFetch';
+import { useOptionalFetch } from '../../hooks/useAuthedFetch';
 import {
   getUsage,
   type UsageDto,
@@ -82,13 +81,14 @@ function buildStats(usage: UsageDto): Stat[] {
 }
 
 export default function BillingSettings(): JSX.Element {
-  const { isLoaded } = useUser();
-  const fetch = useAuthedFetch();
+  const fetch = useOptionalFetch();
 
   const query = useQuery<UsageDto>({
     queryKey: ['usage'],
     queryFn: () => fetch((token) => getUsage(token)),
-    enabled: isLoaded,
+    // /settings/billing is public for signed-out visitors via the
+    // demo CTA. The usage endpoint is now public, so the query
+    // fires on mount regardless of Clerk state.
     staleTime: 30_000,
   });
 

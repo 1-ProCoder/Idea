@@ -24,13 +24,16 @@ function asyncHandler(
   };
 }
 
+// GET /api/usage is intentionally NOT `requireAuth()`-gated: the
+// demo /settings/billing page renders the demo business's usage for
+// signed-out visitors so they can see real numbers (not a hardcoded
+// quote) on the Billing page.
+
 usageRouter.get(
   '/usage',
-  requireAuth(),
   asyncHandler(async (req, res) => {
     const { userId } = getAuth(req);
-    if (!userId) return res.status(401).json({ error: 'unauthorized' });
-    const business = await getOrCreateDefaultBusiness(userId);
+    const business = await getOrCreateDefaultBusiness(userId ?? null);
 
     // Start-of-today in the business's timezone, fall back to UTC.
     const tz = business.timezone || 'UTC';

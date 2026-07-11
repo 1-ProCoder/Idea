@@ -157,7 +157,7 @@ function appointmentToItem(a: AppointmentDto): UnifiedItem {
 }
 
 export async function fetchUnifiedItems(
-  token: string,
+  token: string | null,
   params: { q?: string; limit?: number } = {},
 ): Promise<UnifiedListResponse> {
   const q = params.q?.trim() || undefined;

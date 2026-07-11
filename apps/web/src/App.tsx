@@ -82,70 +82,19 @@ export default function App() {
           <Route path="/waitlist" element={<WaitlistPage />} />
           <Route
             path="/dashboard"
-            // Intentionally NOT wrapped in <Protected>: the landing
-            // page's "Open the demo" CTA takes signed-out visitors
-            // straight to /dashboard, which renders seeded demo data
-            // from the shared demo business. Other dashboard routes
-            // (calls, technicians, schedule, settings, etc.) remain
-            // auth-gated.
+            // Public for signed-out visitors — the landing page's
+            // "Open the demo" CTA takes them straight here, where the
+            // page renders seeded demo data from the shared demo
+            // business.
             element={<DashboardPage />}
           />
-          <Route
-            path="/calls"
-            element={
-              <Protected>
-                <CallsPage />
-              </Protected>
-            }
-          />
-          <Route
-            path="/technicians"
-            element={
-              <Protected>
-                <TechniciansPage />
-              </Protected>
-            }
-          />
-          <Route
-            path="/schedule"
-            element={
-              <Protected>
-                <SchedulePage />
-              </Protected>
-            }
-          />
-          <Route
-            path="/settings"
-            element={
-              <Protected>
-                <SettingsPage />
-              </Protected>
-            }
-          />
-          <Route
-            path="/list"
-            element={
-              <Protected>
-                <ListPage />
-              </Protected>
-            }
-          />
-          <Route
-            path="/list/new"
-            element={
-              <Protected>
-                <ListNewPage />
-              </Protected>
-            }
-          />
-          <Route
-            path="/settings/:section"
-            element={
-              <Protected>
-                <SettingsLayout />
-              </Protected>
-            }
-          >
+          <Route path="/calls" element={<CallsPage />} />
+          <Route path="/technicians" element={<TechniciansPage />} />
+          <Route path="/schedule" element={<SchedulePage />} />
+          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/list" element={<ListPage />} />
+          <Route path="/list/new" element={<ListNewPage />} />
+          <Route path="/settings/:section" element={<SettingsLayout />}>
             <Route index element={<GeneralSettings />} />
             <Route path="general" element={<GeneralSettings />} />
             <Route path="company" element={<CompanySettings />} />
@@ -177,11 +126,12 @@ export default function App() {
           </Route>
           <Route
             path="/customers"
-            element={
-              <Protected>
-                <CustomersPage />
-              </Protected>
-            }
+            // Public for signed-out visitors — the page is read-only
+            // for guests. Write actions (Create / Edit / Delete) are
+            // still POST/PATCH/DELETE-auth-gated on the backend, so
+            // guests see the listing but the New / Edit modals
+            // 401 if they try to submit.
+            element={<CustomersPage />}
           />
           <Route
             path="*"

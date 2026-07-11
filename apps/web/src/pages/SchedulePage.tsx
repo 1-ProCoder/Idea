@@ -17,7 +17,7 @@ import { useUser } from '@clerk/clerk-react';
 import { PageHeader } from '../components/layout/PageHeader';
 import { StatCard } from '../components/ui/StatCard';
 import { EmptyState } from '../components/ui/EmptyState';
-import { useAuthedFetch } from '../hooks/useAuthedFetch';
+import { useOptionalFetch } from '../hooks/useAuthedFetch';
 import { useQuery } from '@tanstack/react-query';
 import {
   getDashboardStats,
@@ -74,14 +74,17 @@ function startHour(a: AppointmentListItem): number {
 }
 
 export default function SchedulePage(): JSX.Element {
-  const { isLoaded } = useUser();
-  const fetch = useAuthedFetch();
+  const fetch = useOptionalFetch();
   const [view] = useState<'day'>('day');
 
+  // /schedule is public for signed-out visitors via the demo CTA.
+  // The dashboard-stats endpoint is now public, so the query fires
+  // on mount regardless of Clerk state. `useOptionalFetch` forwards
+  // `null` when there's no session, and the backend routes to the
+  // shared demo business.
   const statsQuery = useQuery<DashboardStats>({
     queryKey: ['dashboard-stats'],
     queryFn: () => fetch((token) => getDashboardStats(token)),
-    enabled: isLoaded,
     staleTime: 30_000,
   });
 
