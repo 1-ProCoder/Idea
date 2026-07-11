@@ -40,6 +40,14 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  build: {
+    // Vite defaults to `<root>/dist/`, which is `apps/web/dist/` here. We
+    // keep that as the canonical local output and copy it to `<repo>/dist/`
+    // on Vercel via `scripts/postbuild.mjs` so `vercel.json`'s
+    // `outputDirectory: "dist"` (resolved at the repo root) can find it.
+    outDir: 'dist',
+    emptyOutDir: true,
+  },
   server: {
     port: 5173,
     proxy: {

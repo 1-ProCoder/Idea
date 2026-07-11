@@ -73,7 +73,7 @@ Have these three values ready from your Clerk dashboard (User & Authentication �
 
 2.5. **Build & Deployment Settings**: leave defaults (Vercel reads `buildCommand`/`outputDirectory` from `vercel.json`).
 
-2.6. Click **Deploy**. Vercel runs `npm install && npm -w @flowfix/web run build` and publishes `apps/web/dist`.
+2.6. Click **Deploy**. Vercel runs `npm install && npm -w @flowfix/web run build`. The web app's build script chains a `postbuild` step (`apps/web/scripts/postbuild.mjs`, gated by `VERCEL=1`) that copies `apps/web/dist/` to `<repo>/dist/`, so Vercel's `outputDirectory: "dist"` (resolved at the repo root) can find it. The deploy then publishes the contents of `<repo>/dist/`.
 
 2.7. After the deploy succeeds, copy your **Vercel URL** — example: `https://flowfix-ai.vercel.app`. **This is your `VERCEL_FRONTEND_URL`**.
 
@@ -183,6 +183,19 @@ The Clerk publishable key in `VITE_CLERK_PUBLISHABLE_KEY` on Vercel doesn't matc
 ### Webhook returns `400 invalid_signature`
 
 The `CLERK_WEBHOOK_SIGNING_SECRET` on Railway is wrong. Re-copy from **Clerk Dashboard → Webhooks → your endpoint → Signing Secret**.
+
+---
+
+### Vercel build error: "No Output Directory named 'dist' found"
+
+Vercel resolves `outputDirectory` at the **repo root** (the directory containing `vercel.json`), not at the Vite/React project's actual location. Vite, when launched via `npm -w @flowfix/web run build`, runs with cwd `apps/web/` and writes its build output to `apps/web/dist/`. The default `dist/` at the repo root doesn't exist, so Vercel fails to find it.
+
+The fix is split across two files:
+
+- `vercel.json` sets `outputDirectory: "dist"` (resolved at the repo root).
+- `apps/web/scripts/postbuild.mjs` copies `apps/web/dist/` to `<repo>/dist/`. It's chained onto the web app's `build` script in `apps/web/package.json` and gated by `VERCEL=1` so local builds are unaffected.
+
+If you fork or branch and the Vercel deploy breaks again, check both files are intact and that the `VERCEL` env var is set in your Vercel project (it is by default for all Vercel builds).
 
 ---
 
