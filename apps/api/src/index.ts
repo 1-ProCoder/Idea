@@ -33,6 +33,7 @@ import { dashboardRouter } from './routes/dashboard.js';
 import { publicRouter } from './routes/public.js';
 import { usageRouter } from './routes/usage.js';
 import { securityRouter } from './routes/security.js';
+import { notificationsRouter } from './routes/notifications.js';
 
 const PORT = Number(process.env.PORT ?? 4000);
 const WEB_ORIGIN = process.env.WEB_ORIGIN ?? 'http://localhost:5173';
@@ -76,6 +77,7 @@ app.use('/api', businessRouter);
 app.use('/api', dashboardRouter);
 app.use('/api', usageRouter);
 app.use('/api', securityRouter);
+app.use('/api', notificationsRouter);
 
 // 404 fallback
 app.use((_req, res) => {

@@ -119,6 +119,21 @@ export default function App() {
             }
           />
           <Route
+            // Top-level AI Receptionist page so it's reachable from the
+            // global Navbar without going through /settings. Reuses the
+            // same SettingsCard layout the section uses inside SettingsLayout
+            // but wrapped in a centered container so it stands on its own
+            // without the left sidebar context.
+            path="/ai-receptionist"
+            element={
+              <Protected>
+                <div className="max-w-[1100px] mx-auto px-4 sm:px-6 py-8 pb-32">
+                  <AIReceptionistSettings />
+                </div>
+              </Protected>
+            }
+          />
+          <Route
             path="/list"
             element={
               <Protected>

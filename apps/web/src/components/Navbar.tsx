@@ -14,6 +14,7 @@ import {
   PhoneCall,
   Search,
   Settings as SettingsIcon,
+  Sparkles,
   Users,
   type LucideIcon,
 } from 'lucide-react';
@@ -54,11 +55,18 @@ const NAV: NavDef[] = [
     shortcut: '⌘4',
   },
   {
+    key: 'ai-receptionist',
+    label: 'AI Receptionist',
+    icon: Sparkles,
+    route: '/ai-receptionist',
+    shortcut: '⌘5',
+  },
+  {
     key: 'settings',
     label: 'Settings',
     icon: SettingsIcon,
     route: '/settings',
-    shortcut: '⌘5',
+    shortcut: '⌘6',
   },
 ];
 
@@ -67,6 +75,7 @@ function activeKeyForPath(pathname: string): string {
   if (pathname.startsWith('/calls')) return 'calls';
   if (pathname.startsWith('/technicians')) return 'technicians';
   if (pathname.startsWith('/schedule')) return 'schedule';
+  if (pathname.startsWith('/ai-receptionist')) return 'ai-receptionist';
   if (pathname.startsWith('/settings')) return 'settings';
   return '';
 }
@@ -167,7 +176,7 @@ export default function Navbar(): JSX.Element {
         setCommandOpen(true);
         return;
       }
-      if (isMeta && ['1', '2', '3', '4', '5'].includes(e.key)) {
+      if (isMeta && ['1', '2', '3', '4', '5', '6'].includes(e.key)) {
         e.preventDefault();
         const idx = Number(e.key) - 1;
         const target = NAV[idx];
